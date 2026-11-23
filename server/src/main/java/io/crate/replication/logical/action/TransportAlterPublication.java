@@ -187,7 +187,7 @@ public class TransportAlterPublication extends TransportMasterNodeAction<Transpo
             super(in);
             name = in.readString();
             operation = AlterPublication.Operation.VALUES[in.readVInt()];
-            if (in.getVersion().before(Version.V_6_5_0)) {
+            if (in.getVersion().before(Version.V_6_6_0)) {
                 targets = in.readList(stream -> new TableOrPartition(new RelationName(stream), null));
             } else {
                 targets = in.readList(TableOrPartition::new);
@@ -199,10 +199,10 @@ public class TransportAlterPublication extends TransportMasterNodeAction<Transpo
             super.writeTo(out);
             out.writeString(name);
             out.writeVInt(operation.ordinal());
-            if (out.getVersion().before(Version.V_6_5_0)) {
+            if (out.getVersion().before(Version.V_6_6_0)) {
                 for (var target : targets) {
                     if (target.partitionIdent() != null) {
-                        throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                        throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_6_0);
                     }
                 }
                 out.writeCollection(targets, (stream, target) -> {

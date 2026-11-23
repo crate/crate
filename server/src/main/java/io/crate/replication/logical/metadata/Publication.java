@@ -25,6 +25,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -70,7 +71,7 @@ public class Publication implements Writeable {
         int size = in.readVInt();
         targets = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            if (in.getVersion().before(Version.V_6_5_0)) {
+            if (in.getVersion().before(Version.V_6_6_0)) {
                 targets.add(new TableOrPartition(RelationName.fromIndexName(in.readString()), null));
             } else {
                 targets.add(new TableOrPartition(in));
@@ -98,16 +99,16 @@ public class Publication implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(owner);
         out.writeBoolean(forAllTables);
-        if (out.getVersion().before(Version.V_6_5_0)) {
+        if (out.getVersion().before(Version.V_6_6_0)) {
             for (var target : targets) {
                 if (target.partitionIdent() != null) {
-                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_6_0);
                 }
             }
         }
         out.writeVInt(targets.size());
         for (var target : targets) {
-            if (out.getVersion().before(Version.V_6_5_0)) {
+            if (out.getVersion().before(Version.V_6_6_0)) {
                 out.writeString(target.table().indexNameOrAlias());
             } else {
                 target.writeTo(out);
@@ -137,13 +138,14 @@ public class Publication implements Writeable {
         return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", targets=" + targets + "}";
     }
 
-    public Metadata.Builder resolveCurrentRelations(ClusterState state,
-                                                    Roles roles,
-                                                    Role publicationOwner,
-                                                    Role subscriber,
-                                                    String publicationName,
-                                                    Metadata.Builder metadataBuilder) {
+    public List<TableOrPartition> resolveCurrentRelations(ClusterState state,
+                                                          Roles roles,
+                                                          Role publicationOwner,
+                                                          Role subscriber,
+                                                          String publicationName,
+                                                          Metadata.Builder metadataBuilder) {
         Metadata metadata = state.metadata();
+        ArrayList<TableOrPartition> resolvedTargets = new ArrayList<>();
         Predicate<RelationName> relationFilter = relationName -> {
             if (!userCanPublish(roles, relationName, publicationOwner, publicationName)) {
                 return false;
@@ -168,6 +170,7 @@ public class Publication implements Writeable {
                     continue;
                 }
                 addRelation(metadata, metadataBuilder, table, indexFilter);
+                resolvedTargets.add(new TableOrPartition(table.name(), null));
             }
         } else {
             for (TableOrPartition target : targets) {
@@ -182,20 +185,22 @@ public class Publication implements Writeable {
                     }
                     continue;
                 }
-                addTarget(metadata, metadataBuilder, table, target, indexFilter);
+                addTarget(metadata, metadataBuilder, table, target, indexFilter, resolvedTargets);
             }
         }
 
-        return metadataBuilder;
+        return resolvedTargets;
     }
 
     private static void addTarget(Metadata currentMetadata,
                                   Metadata.Builder metadataBuilder,
                                   RelationMetadata.Table table,
                                   TableOrPartition target,
-                                  Predicate<Index> indexFilter) {
+                                  Predicate<Index> indexFilter,
+                                  List<TableOrPartition> resolvedTargets) {
         if (target.partitionIdent() == null) {
             addRelation(currentMetadata, metadataBuilder, table, indexFilter);
+            resolvedTargets.add(target);
             return;
         }
 
@@ -210,10 +215,23 @@ public class Publication implements Writeable {
             return;
         }
 
-        metadataBuilder.setRelation(table.withIndexUUIDs(indices.stream().map(IndexMetadata::getIndexUUID).toList()));
+        metadataBuilder.setRelation(table.withIndexUUIDs(accumulateIndexUUIDs(metadataBuilder, table.name(), indices)));
         for (IndexMetadata indexMetadata : indices) {
             addIndex(metadataBuilder, indexMetadata, indexFilter);
         }
+        resolvedTargets.add(target);
+    }
+
+    private static List<String> accumulateIndexUUIDs(Metadata.Builder metadataBuilder,
+                                                     RelationName relationName,
+                                                     List<IndexMetadata> indices) {
+        LinkedHashSet<String> indexUUIDs = new LinkedHashSet<>();
+        RelationMetadata.Table currentTable = metadataBuilder.getRelation(relationName);
+        if (currentTable != null) {
+            indexUUIDs.addAll(currentTable.indexUUIDs());
+        }
+        indexUUIDs.addAll(indices.stream().map(IndexMetadata::getIndexUUID).toList());
+        return indexUUIDs.stream().toList();
     }
 
     private static void addRelation(Metadata currentMetadata,

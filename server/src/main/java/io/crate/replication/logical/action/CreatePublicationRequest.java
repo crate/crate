@@ -55,7 +55,7 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         int size = in.readVInt();
         var t = new ArrayList<TableOrPartition>(size);
         for (var i = 0; i < size; i++) {
-            if (in.getVersion().before(Version.V_6_5_0)) {
+            if (in.getVersion().before(Version.V_6_6_0)) {
                 t.add(new TableOrPartition(new RelationName(in), null));
             } else {
                 t.add(new TableOrPartition(in));
@@ -86,16 +86,16 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         out.writeString(owner);
         out.writeString(name);
         out.writeBoolean(forAllTables);
-        if (out.getVersion().before(Version.V_6_5_0)) {
+        if (out.getVersion().before(Version.V_6_6_0)) {
             for (var target : targets) {
                 if (target.partitionIdent() != null) {
-                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_6_0);
                 }
             }
         }
         out.writeVInt(targets.size());
         for (var target : targets) {
-            if (out.getVersion().before(Version.V_6_5_0)) {
+            if (out.getVersion().before(Version.V_6_6_0)) {
                 target.table().writeTo(out);
             } else {
                 target.writeTo(out);

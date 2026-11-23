@@ -36,6 +36,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.table.Operation;
 
 public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
 
@@ -51,12 +52,16 @@ public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequ
 
     @VisibleForTesting
     public static final AlterTableTask.AlterTableOperator<AddColumnRequest> ADD_COLUMN_OPERATOR =
-        (req, doctableInfo, metadataBuilder, nodeCtx, fulltextAnalyzerResolver) -> doctableInfo.addColumns(
-            nodeCtx,
-            fulltextAnalyzerResolver,
-            req.references(),
-            req.pKeyIndices(),
-            req.checkConstraints());
+        (req, doctableInfo, metadataBuilder, nodeCtx, fulltextAnalyzerResolver) -> {
+            Operation.blockedRaiseException(doctableInfo, Operation.ALTER);
+            return doctableInfo.addColumns(
+                nodeCtx,
+                fulltextAnalyzerResolver,
+                req.references(),
+                req.pKeyIndices(),
+                req.checkConstraints()
+            );
+        };
     private final NodeContext nodeContext;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 

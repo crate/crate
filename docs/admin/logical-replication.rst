@@ -13,7 +13,7 @@ clusters and thus chaining subscriptions is possible.
 
 .. NOTE::
 
-    A replicated index on a subscriber is read-only.
+    A replicated table or individual partition on a subscriber is read-only.
 
 Logical replication is useful for the following use cases:
 
@@ -44,9 +44,11 @@ Publication
 A publication is the upstream side of logical replication and it's created on
 the cluster which acts as a data source.
 
-Each table can be added to multiple publications if needed. Publications can
-only contain tables. All operation types (``INSERT``, ``UPDATE``, ``DELETE`` and
-schema changes) are replicated.
+Each table or individual partition can be added to multiple publications if
+needed. For published tables, ``INSERT``, ``UPDATE``, ``DELETE`` and schema
+changes are replicated. For individually published partitions, ``INSERT``,
+``UPDATE`` and ``DELETE`` operations affecting those partitions are replicated,
+while schema changes are rejected.
 
 Every publication can have multiple subscribers.
 
@@ -90,10 +92,11 @@ removed using the :ref:`DROP SUBSCRIPTION <sql-drop-subscription>` command.
 A subscription starts replicating on its creation and stops on its removal
 (if no failure happen in-between).
 
-Published tables must not exist on the subscriber. A cluster cannot subscribe
-to a table on another cluster if it exists already on its side, therefore it's
-not possible to drop and re-create a subscription without starting from scratch
-i.e removing all replicated tables.
+For whole-table subscriptions, published tables must not exist on the
+subscriber. For individual partition subscriptions, the target partitions must
+not exist; see :ref:`logical-replication-partitions`. Dropping a subscription
+preserves its replicated data, so creating it again requires removing the
+previously replicated tables or partitions first.
 
 Only regular tables (including partitions) may be the target of a replication.
 For example, you can not replicate system tables or views.
@@ -102,18 +105,98 @@ The tables are matched between the publisher and the subscriber using the fully
 qualified table name. Replication to differently-named tables on the subscriber
 is not supported.
 
+.. _logical-replication-partitions:
+
+Replicating individual partitions
+---------------------------------
+
+Use the ``PARTITION`` clause in a publication to replicate individual
+partitions of a table.
+
+For example, individual partition replication can combine data from multiple
+remote sites in one table on a central cluster. Each site has a ``doc.events``
+table partitioned by ``site_id``.
+
+On site A, publish its partition::
+
+    CREATE PUBLICATION pub_events_a
+    FOR TABLE doc.events PARTITION (site_id = 'a');
+
+On site B, publish its partition::
+
+    CREATE PUBLICATION pub_events_b
+    FOR TABLE doc.events PARTITION (site_id = 'b');
+
+On the central cluster, subscribe to both publications::
+
+    CREATE SUBSCRIPTION sub_events_a
+    CONNECTION 'crate://site-a.example.com:4300?user=user_a&password=secret&mode=pg_tunnel'
+    PUBLICATION pub_events_a;
+
+    CREATE SUBSCRIPTION sub_events_b
+    CONNECTION 'crate://site-b.example.com:4300?user=user_b&password=secret&mode=pg_tunnel'
+    PUBLICATION pub_events_b;
+
+The subscriptions copy the selected partitions into the same ``doc.events``
+table and replicate their changes. Once the data is replicated, query both
+sites on the central cluster::
+
+    SELECT site_id, count(*) FROM doc.events GROUP BY site_id;
+
+Publisher behavior and restrictions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``INSERT``, ``UPDATE`` and ``DELETE`` operations affecting individually
+published partitions are replicated to their subscribers.
+
+.. CAUTION::
+
+    Partitions share their parent table's schema. Schema changes to a table
+    that has individually published partitions are therefore rejected on the
+    publisher. This also applies to automatic column creation through dynamic
+    objects.
+
+If an individually published partition is dropped on the publisher, its
+subscription target is removed, but its replicated data remains on the
+subscriber and becomes writable. This also applies when ``DELETE`` removes a
+whole partition. In contrast, when the whole table is published, dropping one
+of its partitions also removes that partition on the subscriber.
+
+Dropping the parent table on the publisher also stops replication of its
+individually published partitions and preserves their subscriber copies.
+
+Subscriber behavior and restrictions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Unlike whole-table replication, individual partitions can be replicated into
+an existing table, provided its schema is compatible with the publisher and
+the target partition does not already exist. If the parent table does not
+exist, it is created as part of replication. Compatibility includes matching
+column names, types as well as column OIDs. For example, creating and dropping
+columns can result in different column OIDs, making the schemas incompatible.
+
+Subscribed partitions are read-only. Other local partitions of the same table
+remain writable with ``INSERT``, ``UPDATE`` and ``DELETE``. While any partition
+is subscribed, table-level operations such as dropping the table or changing
+its schema remain restricted.
+
+As with whole-table subscriptions, dropping a subscription to an individual
+partition preserves the replicated data and makes it writable.
+
 Security
 --------
 
 To create, alter or drop a publication, a user must have the ``AL`` privilege
 on the cluster. Only the owner (the user who created the publication) or a
 superuser is allowed to ``ALTER`` or ``DROP`` a publication.
-To add tables to a publication, the user must have
-``DQL``, ``DML``, and ``DDL`` privileges on the table. When a user creates a
+To add tables or individual partitions to a publication, the user must have
+``DQL``, ``DML``, and ``DDL`` privileges on the table. For individual partitions,
+these privileges are checked on the parent table. When a user creates a
 publication that publishes all tables automatically, only those tables where the
 user has ``DQL``, ``DML``, and ``DDL`` privileges will be published.
 The user a subscriber uses to connect to the publisher must have ``DQL``
-privileges on the published tables. Tables, included into a publication but
+privileges on the published tables, including the parent tables of individually
+published partitions. Tables, included into a publication but
 not available for a subscriber due to lack of ``DQL`` privilege, will not be
 replicated.
 
@@ -140,3 +223,6 @@ All subscriptions are listed in the :ref:`pg_subscription` table.
 More details for a subscription are available in the :ref:`pg_subscription_rel`
 table. The table contains detailed information about the replication state per
 table, including error messages if there was an error.
+
+(TODO: Exposing individual partition identifiers in
+``pg_publication_tables`` and ``pg_subscription_rel`` is not yet implemented.)

@@ -47,11 +47,11 @@ public class CreatePublicationRequestTest extends ESTestCase {
             List.of(target)
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_5_0);
+        out.setVersion(Version.V_6_6_0);
         request.writeTo(out);
 
         var in = out.bytes().streamInput();
-        in.setVersion(Version.V_6_5_0);
+        in.setVersion(Version.V_6_6_0);
         var streamed = new CreatePublicationRequest(in);
 
         assertThat(streamed.targets()).containsExactly(target);
@@ -67,11 +67,11 @@ public class CreatePublicationRequestTest extends ESTestCase {
             List.of(target)
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
         request.writeTo(out);
 
         var in = out.bytes().streamInput();
-        in.setVersion(Version.V_6_4_0);
+        in.setVersion(Version.V_6_5_0);
         var streamed = new CreatePublicationRequest(in);
 
         assertThat(streamed.targets()).containsExactly(target);
@@ -86,7 +86,7 @@ public class CreatePublicationRequestTest extends ESTestCase {
             List.of(new TableOrPartition(new RelationName("doc", "t1"), "04132"))
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
 
         assertThatThrownBy(() -> request.writeTo(out))
             .isExactlyInstanceOf(IllegalStateException.class)

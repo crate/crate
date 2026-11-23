@@ -95,11 +95,11 @@ public class SubscriptionsMetadataTest extends ESTestCase {
             Map.of(target, new Subscription.RelationState(Subscription.State.INITIALIZING, null))
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_5_0);
+        out.setVersion(Version.V_6_6_0);
         subscription.writeTo(out);
 
         var in = out.bytes().streamInput();
-        in.setVersion(Version.V_6_5_0);
+        in.setVersion(Version.V_6_6_0);
         var streamed = new Subscription(in);
 
         assertThat(streamed.relations()).containsOnlyKeys(target);
@@ -116,11 +116,11 @@ public class SubscriptionsMetadataTest extends ESTestCase {
             Map.of(target, new Subscription.RelationState(Subscription.State.INITIALIZING, null))
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
         subscription.writeTo(out);
 
         var in = out.bytes().streamInput();
-        in.setVersion(Version.V_6_4_0);
+        in.setVersion(Version.V_6_5_0);
         var streamed = new Subscription(in);
 
         assertThat(streamed.relations()).containsOnlyKeys(target);
@@ -137,7 +137,7 @@ public class SubscriptionsMetadataTest extends ESTestCase {
             Map.of(target, new Subscription.RelationState(Subscription.State.INITIALIZING, null))
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
 
         assertThatThrownBy(() -> subscription.writeTo(out))
             .isExactlyInstanceOf(IllegalStateException.class)

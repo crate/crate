@@ -37,6 +37,9 @@ of the table stops for all subscribers. Already replicated data remains on
 the subscribed clusters, therefore subscribers can not re-subscribe again to
 the tables removed from the publication.
 
+(TODO: Adding and removing individual partition targets is not yet
+implemented.)
+
 .. NOTE::
 
   Replicated tables on a subscriber cluster will turn into regular writable
