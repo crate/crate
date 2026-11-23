@@ -192,4 +192,5 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
         }
         return false;
     }
+
 }

@@ -1639,4 +1639,50 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             assertThat(res).hasRows("1", "2", "3", "4", "5");
         });
     }
+
+    @Test
+    public void test_schema_changes_are_rejected_on_a_table_with_individually_published_partitions() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT, x INT, o OBJECT(DYNAMIC)) PARTITIONED BY (p) " +
+                "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p, x, o) VALUES (1, 1, 10, {})");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT AL TO " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        createSubscription("sub1", "pub1");
+
+        assertThatThrownBy(() -> executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN y INT"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication publication."
+            );
+        assertThatThrownBy(() -> executeOnPublisher("ALTER TABLE doc.t1 DROP COLUMN x"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication publication."
+            );
+        assertThatThrownBy(() -> executeOnPublisher("ALTER TABLE doc.t1 RENAME COLUMN x TO y"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication publication."
+            );
+        assertThatThrownBy(() -> executeOnPublisher("ALTER TABLE doc.t1 ALTER COLUMN x SET DEFAULT 20"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication publication."
+            );
+        assertThatThrownBy(() -> executeOnPublisher("ALTER TABLE doc.t1 RENAME TO t2"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
+            );
+        assertThatThrownBy(() -> executeOnPublisher("INSERT INTO doc.t1 (id, p, o) VALUES (2, 1, {y = 20})"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication publication."
+            );
+    }
 }

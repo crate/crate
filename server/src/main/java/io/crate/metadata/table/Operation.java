@@ -90,6 +90,9 @@ public enum Operation {
     public static final EnumSet<Operation> PUBLISHED_IN_LOGICAL_REPLICATION = EnumSet.of(
         READ, UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_SET, ALTER_BLOCKS, ALTER_CLOSE, ALTER_REROUTE, REFRESH,
         SHOW_CREATE, COPY_TO, OPTIMIZE, RESTORE_SNAPSHOT, CREATE_SNAPSHOT, CREATE_PUBLICATION);
+    public static final EnumSet<Operation> PARTITION_PUBLISHED_IN_LOGICAL_REPLICATION = EnumSet.of(
+        READ, UPDATE, INSERT, DELETE, DROP, ALTER_SET, ALTER_BLOCKS, ALTER_CLOSE, ALTER_REROUTE, REFRESH,
+        SHOW_CREATE, COPY_TO, OPTIMIZE, RESTORE_SNAPSHOT, CREATE_SNAPSHOT, CREATE_PUBLICATION);
 
     private final String representation;
 
@@ -108,7 +111,8 @@ public enum Operation {
     public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings,
                                                                     IndexMetadata.State state,
                                                                     boolean isPublished,
-                                                                    boolean hasOnlyPartitionSubscriptions) {
+                                                                    boolean hasOnlyPartitionSubscriptions,
+                                                                    boolean hasPublishedPartitions) {
         if (state == IndexMetadata.State.CLOSE) {
             return CLOSED_OPERATIONS;
         }
@@ -122,6 +126,8 @@ public enum Operation {
             operations = SUBSCRIBED_IN_LOGICAL_REPLICATION;
         } else if (isSubscribed) {
             operations = SUBSCRIBED_IN_LOGICAL_REPLICATION;
+        } else if (hasPublishedPartitions) {
+            operations = PARTITION_PUBLISHED_IN_LOGICAL_REPLICATION;
         } else if (isPublished) {
             operations = PUBLISHED_IN_LOGICAL_REPLICATION;
         }
@@ -151,7 +157,8 @@ public enum Operation {
                        || relationInfo.supportedOperations().equals(PARTITION_SUBSCRIBED_IN_LOGICAL_REPLICATION)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
                                    "logical replication subscription.";
-            } else if (relationInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION)) {
+            } else if (relationInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION)
+                       || relationInfo.supportedOperations().equals(PARTITION_PUBLISHED_IN_LOGICAL_REPLICATION)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
                                    "logical replication publication.";
             } else {

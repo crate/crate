@@ -203,12 +203,14 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 table.settings(),
                 table.state(),
                 publicationsMetadata == null ? false : publicationsMetadata.isPublished(table.name()),
-                hasOnlyPartitionSubscriptions(table.name(), metadata)
+                hasOnlyPartitionSubscriptions(table.name(), metadata),
+                hasPublishedPartitions(table.name(), publicationsMetadata)
             ),
             table.tableVersion()
         );
     }
 
+    // Keep local partitions writable when only individual partitions are subscribed.
     private static boolean hasOnlyPartitionSubscriptions(RelationName relationName, Metadata metadata) {
         boolean hasTableSubscription = false;
         boolean hasPartitionSubscription = false;
@@ -224,6 +226,22 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             }
         }
         return hasPartitionSubscription && hasTableSubscription == false;
+    }
+
+    // Block schema changes on the parent table if any individual partition is published.
+    private static boolean hasPublishedPartitions(RelationName relationName,
+                                                   @Nullable PublicationsMetadata publicationsMetadata) {
+        if (publicationsMetadata == null) {
+            return false;
+        }
+        for (var publication : publicationsMetadata.publications().values()) {
+            for (TableOrPartition target : publication.targets()) {
+                if (target.table().equals(relationName) && target.partitionIdent() != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
