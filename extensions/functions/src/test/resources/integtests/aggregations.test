@@ -1,0 +1,25 @@
+statement ok
+# SqlLogicMixedClusterTest in crate-qa starts 3 nodes, hence 3 shards.
+create table t (id int, value float) clustered by (id) into 3 shards with (number_of_replicas=0)
+
+statement ok
+# The ids 1, 2 and 5 are routed to shards 2, 1 and 0.
+insert into t (id, value) values (1, 1.5), (2, 2.5), (5, 5.5)
+
+statement ok
+refresh table t
+
+query II rows hll-group-by
+select id, hyperloglog_distinct(value) from t group by id order by id
+----
+1| 1
+2| 1
+5| 1
+
+query I rows hll-global
+select hyperloglog_distinct(value) from t
+----
+3
+
+statement ok
+drop table t
