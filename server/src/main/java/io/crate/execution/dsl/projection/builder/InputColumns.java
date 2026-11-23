@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import static io.crate.common.collections.Lists.mapTail;
 import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 
 import java.util.ArrayList;
@@ -33,7 +32,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-import io.crate.expression.scalar.SubscriptObjectFunction;
+import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchMarker;
@@ -309,16 +308,7 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
             return symbol;
         }
 
-        DataType<?> returnType = symbol.valueType();
-        List<String> path = column.path();
-
-        List<Symbol> arguments = mapTail(rootIC, path, Literal::of);
-
-        return new Function(
-            SubscriptObjectFunction.SIGNATURE,
-            arguments,
-            returnType
-        );
+        return SubscriptFunctions.tryCreateSubscript(rootIC, column.path());
     }
 
     @Override

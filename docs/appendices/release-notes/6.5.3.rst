@@ -46,6 +46,16 @@ series.
 Fixes
 =====
 
+- Fixed a ``ClassCastException`` error which was thrown when using a subscript
+  on a column of type ``ARRAY(OBJECT)``, including nested arrays of objects,
+  selected from a view or a subquery, e.g.::
+
+      SELECT items['x'] FROM v
+
+  or::
+
+      SELECT items['arr']['z'] FROM v``
+
 - Fixed an issue where a comparison on object columns could lead to a wrong
   result if the objects had the same amount of keys and some values were
   ``null``.
