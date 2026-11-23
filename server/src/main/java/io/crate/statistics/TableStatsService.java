@@ -25,6 +25,7 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -217,43 +218,52 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     @Override
     public void run() {
-        updateStats();
+        updateStats().whenComplete((result, error) -> {
+            if (error != null) {
+                LOGGER.error("Error running periodic " + STMT, error);
+            }
+            scheduledRefresh = scheduleNextRefresh(refreshInterval);
+        });
     }
 
-    public void updateStats() {
+    private CompletableFuture<?> updateStats() {
+        if (!shouldUpdateStats()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        
+        try {
+            BaseResultReceiver receiver = new BaseResultReceiver();
+            if (session == null) {
+                session = sessions.newSystemSession();
+            }
+            session.quickExec(STMT, receiver, Row.EMPTY);
+            return receiver.completionFuture();
+        } catch (Throwable t) {
+            return CompletableFuture.failedFuture(t);
+        }
+    }
+
+    private boolean shouldUpdateStats() {
         if (clusterService.localNode() == null) {
             /*
               During a long startup (e.g. during an upgrade process) the localNode() may be null
               and this would lead to NullPointerException in the TransportExecutor.
              */
             LOGGER.debug("Could not retrieve table stats. localNode is not fully available yet.");
-            return;
+            return false;
         }
         if (clusterService.state().nodes().getMinNodeVersion().before(Version.V_5_7_0)) {
             // Streaming format changed in 5.7.0, so wait until everything is upgraded before
             // collecting stats
             LOGGER.debug("Could not retrieve table stats.  Cluster not fully updated yet");
-            return;
+            return false;
         }
         if (!clusterService.state().nodes().isLocalNodeElectedMaster()) {
             // `ANALYZE` will publish the new stats to all nodes, so we need only a single node running it.
-            return;
+            return false;
         }
-        try {
-            BaseResultReceiver resultReceiver = new BaseResultReceiver();
-            resultReceiver.completionFuture().whenComplete((_, err) -> {
-                scheduledRefresh = scheduleNextRefresh(refreshInterval);
-                if (err != null) {
-                    LOGGER.error("Error running periodic " + STMT, err);
-                }
-            });
-            if (session == null) {
-                session = sessions.newSystemSession();
-            }
-            session.quickExec(STMT, resultReceiver, Row.EMPTY);
-        } catch (Throwable t) {
-            LOGGER.error("error retrieving table stats", t);
-        }
+
+        return true;
     }
 
     private Scheduler.@Nullable ScheduledCancellable scheduleNextRefresh(TimeValue refreshInterval) {
