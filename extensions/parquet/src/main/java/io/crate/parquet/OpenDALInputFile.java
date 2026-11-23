@@ -23,6 +23,7 @@ package io.crate.parquet;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import org.apache.opendal.Metadata;
 import org.apache.opendal.Operator;
@@ -63,5 +64,11 @@ public class OpenDALInputFile implements InputFile {
     @Override
     public String name() {
         return path;
+    }
+
+    @Override
+    public Optional<String> identity() throws IOException {
+        Metadata metadata = operator.stat(path);
+        return Optional.of(metadata.etag);
     }
 }

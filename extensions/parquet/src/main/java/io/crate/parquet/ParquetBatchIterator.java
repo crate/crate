@@ -29,7 +29,14 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import dev.hardwood.HardwoodContext;
 import dev.hardwood.InputFile;
+<<<<<<< HEAD
+=======
+import dev.hardwood.MetadataSource;
+import dev.hardwood.metadata.ParsedFooter;
+import dev.hardwood.reader.FilterPredicate;
+>>>>>>> 7eba3fdf8a (Cache and re-use parquet footer)
 import dev.hardwood.reader.ParquetFileReader;
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.reader.ParquetFileReader.RowReaderBuilder;
@@ -40,6 +47,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.Reference;
+import io.crate.parquet.ParquetForeignDataWrapper.FooterCacheKey;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
 
@@ -52,12 +60,26 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private final List<Reference> columns;
     private final List<InputFile> inputFiles;
     private volatile Throwable killed = null;
+<<<<<<< HEAD
 
     public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns) {
+=======
+    public static final Map<String, FilterPredicate.Operator> FILTER_PUSHDOWN_OPERATORS = Map.of(
+        EqOperator.NAME, FilterPredicate.Operator.EQ,
+        GtOperator.NAME, FilterPredicate.Operator.GT,
+        GteOperator.NAME, FilterPredicate.Operator.GT_EQ,
+        LtOperator.NAME, FilterPredicate.Operator.LT,
+        LteOperator.NAME, FilterPredicate.Operator.LT_EQ
+    );
+    private Map<FooterCacheKey, ParsedFooter> footerCache;
+
+    public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns, Symbol predicates, Map<FooterCacheKey, ParsedFooter> footerCache) {
+>>>>>>> 7eba3fdf8a (Cache and re-use parquet footer)
         this.inputFiles = inputFiles;
         this.columns = columns;
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
+        this.footerCache = footerCache;
     }
 
     private void raiseIfKilled() {
@@ -155,8 +177,22 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     }
 
     private void initReader() {
+        MetadataSource footers = file -> {
+            FooterCacheKey key = new FooterCacheKey(file.name(), file.identity().orElseThrow());
+            ParsedFooter footer = footerCache.get(key);
+            if (footer == null) {
+                footer = ParsedFooter.readFrom(file);
+                footerCache.put(key, footer);
+            }
+            return footer;
+        };
+
         try {
-            reader = ParquetFileReader.openAll(inputFiles);
+            HardwoodContext context = HardwoodContext.builder()
+                .metadataSource(footers)
+                .build();
+
+            reader = ParquetFileReader.openAll(inputFiles, context);
             fileSchema = reader.getFileSchema();
             RowReaderBuilder builder = reader.buildRowReader();
             if (!columns.isEmpty()) {

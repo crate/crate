@@ -28,6 +28,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.opendal.AsyncExecutor;
@@ -38,6 +39,11 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import dev.hardwood.InputFile;
+<<<<<<< HEAD
+=======
+import dev.hardwood.internal.reader.RangeBackedInputFile;
+import dev.hardwood.metadata.ParsedFooter;
+>>>>>>> 7eba3fdf8a (Cache and re-use parquet footer)
 import io.crate.common.io.IOUtils;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -70,6 +76,18 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     private final Setting<String> regionSetting = Setting.simpleString("region");
     private final List<Setting<?>> mandatoryServerOptions = List.of(filesSetting);
     private final List<Setting<?>> optionalServerOptions = List.of(protocolSetting, regionSetting);
+<<<<<<< HEAD
+=======
+    private static ConcurrentHashMap<String, RangeBackedInputFile> inputFileCache = new ConcurrentHashMap<>();
+
+    public record FooterCacheKey(String uri, String etag) {}
+
+    private Map<FooterCacheKey, ParsedFooter> footerCache = new ConcurrentHashMap<>();
+
+    public String name() {
+        return "parquet";
+    }
+>>>>>>> 7eba3fdf8a (Cache and re-use parquet footer)
 
     public static List<InputFile> urisToInputFiles(AsyncExecutor asyncExecutor,
                                                    Role currentUser,
@@ -160,7 +178,7 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
         AsyncExecutor asyncExecutor = sharedAsyncExecutor.asyncExecutor();
         List<InputFile> inputFiles = urisToInputFiles(asyncExecutor, currentUser, pathsToFiles, options);
-        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
+        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns, query, footerCache);
         it = inputRowProjector.apply(it);
         return CompletableFuture.completedFuture(it);
     }
