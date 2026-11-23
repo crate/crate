@@ -129,7 +129,8 @@ public final class EqOperator extends Operator<Object> {
                 ref.column(),
                 (ObjectType) dataType,
                 (Map<String, Object>) value,
-                context
+                context,
+                Occur.MUST
             );
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
@@ -335,7 +336,7 @@ public final class EqOperator extends Operator<Object> {
             preFilters++;
             boolBuilder.add(innerQuery, Occur.MUST);
         }
-        if (preFilters > 0 && preFilters == value.size()) {
+        if (preFilters > 0 && preFilters == value.size() && preFilters == type.innerTypes().size()) {
             return boolBuilder.build();
         } else {
             Query genericEqFilter = genericFunctionFilter(eq, context);
@@ -346,13 +347,5 @@ public final class EqOperator extends Operator<Object> {
                 return boolBuilder.build();
             }
         }
-    }
-
-    private static Query refEqObject(Function eq,
-                                    ColumnIdent columnIdent,
-                                    ObjectType type,
-                                    Map<String, Object> value,
-                                    Context context) {
-        return refEqObject(eq, columnIdent, type, value, context, Occur.MUST);
     }
 }
