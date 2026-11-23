@@ -323,7 +323,8 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       "   col1 TEXT," +
                       "   col2 INTEGER DEFAULT 1 + 1," +
                       "   col3 TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP(3)," +
-                      "   col4 TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP(3)" +
+                      "   col4 TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP(3)," +
+                      "   col5 GEO_POINT DEFAULT 'POINT (3 4)'::GEO_POINT" +
                       ") with (" +
                       " \"merge.scheduler.max_thread_count\" = 1" +
                       ")");
@@ -334,7 +335,8 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                "col1" TEXT,
                "col2" INTEGER DEFAULT 2,
                "col3" TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp(3),
-               "col4" TIMESTAMP WITHOUT TIME ZONE DEFAULT current_timestamp(3)
+               "col4" TIMESTAMP WITHOUT TIME ZONE DEFAULT current_timestamp(3),
+               "col5" GEO_POINT DEFAULT 'POINT (3.0 4.0)'
             )
             CLUSTERED INTO 4 SHARDS
             WITH (
@@ -363,13 +365,16 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_generated_expression_on_geo_shape_in_show_create_table_output() throws Exception {
+    public void test_generated_expression_on_geo_point_and_shape_in_show_create_table_output() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
-            .addTable("create table t (g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
+            .addTable("create table t (" +
+                "g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', " +
+                "p geo_point generated always as [5, 6]::geo_point)");
         DocTableInfo table = e.resolveTableInfo("t");
         var node = new TableInfoToAST(table).toStatement();
-        assertThat(SqlFormatter.formatSql(node)).contains(
-            "\"g\" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))");
+        assertThat(SqlFormatter.formatSql(node))
+            .contains("\"g\" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
+            .contains("\"p\" GEO_POINT GENERATED ALWAYS AS 'POINT (5.0 6.0)'");
     }
 
     @Test
