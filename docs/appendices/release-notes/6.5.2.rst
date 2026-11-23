@@ -52,6 +52,11 @@ Security Fixes
 Fixes
 =====
 
+- Fixed an issue that caused ``EOFException`` to be thrown, when reading rows
+  from a dynamic column, which was first written with a nested array of only
+  ``null`` values, e.g.: ``[[null]]``, and later with a nested array of a
+  defined type, e.g.: ``[[1]]``.
+ 
 - Fixed a ``NullPointerException`` that occurred when updating a column of
   type ``ARRAY(OBJECT)``, or an object containing one, with an array that
   contains a ``null`` element. The ``null`` element is now stored, matching the
