@@ -244,7 +244,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     /**
      * We must fix this test to run ALL statements via JDBC or not because object/map values are NOT preserving exact
      * its elements numeric types (e.g. Long(0) becomes Integer(0)). This is caused by the usage of JSON for psql text
-     * serialization. See e.g. {@link org.codehaus.jackson.io.NumberOutput#outputLong(long, byte[], int)}.
+     * serialization. See e.g. {@link com.fasterxml.jackson.core.io.NumberOutput#outputLong(long, byte[], int)}.
      */
     @UseJdbc(0)
     @Test
@@ -472,14 +472,23 @@ public class SQLTypeMappingTest extends IntegTestCase {
 
     @Test
     public void test_dynamic_nested_array_of_null_upcast() {
-        execute("create table t (a int) with (column_policy= 'dynamic')");
-        execute("insert into t(a, b) values (1, [[]])");
-        execute("insert into t(a, b) values (2, [[1, 2], [3, 4]])");
+        execute("create table t (a int, o object(dynamic)) with (column_policy= 'dynamic')");
+        // https://github.com/crate/crate/issues/20651: [[null]] must stay readable after the upcast
+        execute("insert into t(a, b, c, o) values (1, [[]], [[null]], {n=[[null]]})");
+        execute("insert into t(a, b, c, o) values (2, [[1, 2], [3, 4]], [[1]], {n=[[1]]})");
         execute("refresh table t");
-        execute("select data_type from information_schema.columns as tt where tt.table_name = 't' and tt.column_name = 'b'");
-        assertThat(response).hasRows("integer_array_array");
-        execute("select b from t");
-        assertThat(response).hasRowsInAnyOrder("[[]]", "[[1, 2], [3, 4]]");
+        execute("select column_name, data_type from information_schema.columns as tt " +
+                "where tt.table_name = 't' and tt.column_name in ('b', 'c', 'o[''n'']') order by 1");
+        assertThat(response).hasRows(
+            "b| integer_array_array",
+            "c| integer_array_array",
+            "o['n']| integer_array_array"
+        );
+        execute("select b, c, o from t order by a");
+        assertThat(response).hasRows(
+            "[[]]| [[NULL]]| {n=[[NULL]]}",
+            "[[1, 2], [3, 4]]| [[1]]| {n=[[1]]}"
+        );
     }
 
     @Test
@@ -498,8 +507,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
     @Test
     public void test_array_of_null_upcasts_to_array_of_object() throws Exception {
         execute("create table t (a int) with (column_policy ='dynamic')");
-        execute("insert into t (a, x) values (1, [])");
-        execute("insert into t (a, x) values (2, [{y=1},{y=2}])");
+        execute("insert into t (a, x, z) values (1, [], [[null]])");
+        execute("insert into t (a, x, z) values (2, [{y=1},{y=2}], [[{y=1}]])");
         execute("refresh table t");
 
         // Ensure correct type is stored into the table's metadata
@@ -507,12 +516,14 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(response).hasRows(
             "a| integer",
             "x| object_array",
-            "x['y']| bigint"
+            "z| object_array_array",
+            "x['y']| bigint",
+            "z['y']| bigint"
         );
 
         assertBusy(() -> {
             execute("select * from t order by a");
-            assertThat(response).hasRows("1| []", "2| [{y=1}, {y=2}]");
+            assertThat(response).hasRows("1| []| [[NULL]]", "2| [{y=1}, {y=2}]| [[{y=1}]]");
         });
         execute("select x['y'] from t order by a");
         assertThat(response).hasRows("[]", "[1, 2]");
