@@ -166,6 +166,10 @@ public final class ValueNormalizer {
 
     private static void normalizeObjectArrayValue(List<Map<String, Object>> values, Reference arrayInfo, TableInfo tableInfo) {
         for (Map<String, Object> value : values) {
+            if (value == null) {
+                // Keep null elements as they are, like INSERT does
+                continue;
+            }
             // return value not used and replaced in value as arrayItem is a map that is mutated
             normalizeObjectValue(value, arrayInfo, tableInfo);
         }
