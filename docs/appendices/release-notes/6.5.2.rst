@@ -52,6 +52,15 @@ Security Fixes
 Fixes
 =====
 
+- Fixed an issue in the PostgreSQL wire protocol implementation that could cause
+  clients to not receive an error message if:
+
+    - The client sent a parse, bind and execute for either an ``insert``,
+      ``update`` or ``delete`` statement.
+    - The client send another message resulting in an error. For example sending
+      a value that doesn't match the statement's type.
+    - The client didn't follow up with a ``sync`` message.
+
 - Fixed an issue where querying ``sys.nodes`` might return ``SQLParseException[Values less than -1 bytes
   are not supported: -86016b]``.
 
