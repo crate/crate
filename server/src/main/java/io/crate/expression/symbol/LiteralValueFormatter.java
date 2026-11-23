@@ -44,8 +44,11 @@ public final class LiteralValueFormatter {
             formatIterable(iterable, builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
-        } else if (value instanceof String || value instanceof Point) {
+        } else if (value instanceof String) {
             builder.append(Literals.quoteStringLiteral(value.toString()));
+        } else if (value instanceof Point point) {
+            // WKT, so that the formatted literal can be cast back to geo_point
+            builder.append(Literals.quoteStringLiteral("POINT (" + point.getX() + " " + point.getY() + ")"));
         } else if (value instanceof Period) {
             builder.append(Literals.quoteStringLiteral(value.toString()));
             builder.append("::interval");

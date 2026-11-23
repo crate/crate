@@ -23,8 +23,14 @@ package io.crate.expression.symbol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
+
 import org.joda.time.Period;
 import org.junit.Test;
+import org.locationtech.spatial4j.shape.Point;
+
+import io.crate.types.DataTypes;
 
 public class LiteralValueFormatterTest {
 
@@ -40,5 +46,15 @@ public class LiteralValueFormatterTest {
         StringBuilder sb = new StringBuilder();
         LiteralValueFormatter.format(Period.seconds(1), sb);
         assertThat(sb.toString()).isEqualTo("'PT1S'::interval");
+    }
+
+    @Test
+    public void test_format_geo_point_as_wkt_that_can_be_cast_back() throws Exception {
+        Point point = DataTypes.GEO_POINT.implicitCast(List.of(9.7417, 47.4108));
+        StringBuilder sb = new StringBuilder();
+        LiteralValueFormatter.format(Map.of("p", point), sb);
+        assertThat(sb.toString()).isEqualTo("{\"p\"='POINT (9.7417 47.4108)'}");
+
+        assertThat(DataTypes.GEO_POINT.implicitCast("POINT (9.7417 47.4108)")).isEqualTo(point);
     }
 }
