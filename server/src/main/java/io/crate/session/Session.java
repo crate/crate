@@ -133,7 +133,6 @@ import io.crate.types.DataType;
  */
 public class Session implements AutoCloseable {
 
-    // Logger name should be SQLOperations here
     private static final Logger LOGGER = LogManager.getLogger(Session.class);
 
     public static final String UNNAMED = "";
