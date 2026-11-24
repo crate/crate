@@ -257,6 +257,22 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_drop_schema_cascade_rejects_schema_containing_subscribed_table() throws Exception {
+        executeOnPublisher("CREATE TABLE s1.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        createPublication("pub1", false, List.of("s1.t1"));
+        createSubscription("sub1", "pub1");
+
+        assertThatThrownBy(() -> executeOnSubscriber("DROP SCHEMA s1 CASCADE"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"s1.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription."
+            );
+        assertThat(executeOnSubscriber(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 's1'"
+        )).hasRows("t1");
+    }
+
+    @Test
     public void test_table_can_be_added_to_multiple_publications() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
                            defaultTableSettings() +

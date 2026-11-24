@@ -540,7 +540,8 @@ public final class MetadataTracker implements Closeable {
                 updatedClusterState,
                 settings,
                 allocationService,
-                partitionsToRemove
+                partitionsToRemove,
+                true
             );
 
         }
