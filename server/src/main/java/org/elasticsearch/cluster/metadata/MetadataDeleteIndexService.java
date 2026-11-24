@@ -43,7 +43,10 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.RelationMetadata;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.table.Operation;
 
 /**
  * Deletes indices.
@@ -66,7 +69,7 @@ public class MetadataDeleteIndexService {
      * Delete some indices from the cluster state.
      */
     public ClusterState deleteIndices(ClusterState currentState, Collection<Index> indices) {
-        return deleteIndices(currentState, settings, allocationService, indices);
+        return deleteIndices(currentState, settings, allocationService, indices, false);
     }
 
     /**
@@ -75,9 +78,24 @@ public class MetadataDeleteIndexService {
     public static ClusterState deleteIndices(ClusterState currentState,
                                              Settings settings,
                                              AllocationService allocationService,
-                                             Collection<Index> indices) {
+                                             Collection<Index> indices,
+                                             boolean isReplicatedPartitionDeletion) {
         final Metadata meta = currentState.metadata();
         final Set<Index> indicesToDelete = indices.stream().map(i -> meta.getIndexSafe(i).getIndex()).collect(toSet());
+
+        if (isReplicatedPartitionDeletion == false) {
+            for (Index index : indicesToDelete) {
+                IndexMetadata indexMetadata = meta.getIndexSafe(index);
+                if (Operation.isReplicated(indexMetadata.getSettings())) {
+                    RelationName relationName = RelationName.fromIndexName(index.name());
+                    throw new OperationOnInaccessibleRelationException(
+                        relationName,
+                        "The relation \"" + relationName.fqn() + "\" doesn't allow DROP operations, " +
+                            "because it is included in a logical replication subscription."
+                    );
+                }
+            }
+        }
 
         // Check if index deletion conflicts with any running snapshots
         Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(currentState, indicesToDelete);

@@ -66,3 +66,6 @@ Fixes
   finish, if the series had more than ``2147483647`` values or if the step value
   pointed away from the stop value, or if the stop value is the maximum value
   for the given type.
+
+- Fixed an issue that incorrectly allowed dropping subscribed tables by
+  ``DROP SCHEMA CASCADE``.
