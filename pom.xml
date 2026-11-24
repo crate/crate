@@ -222,7 +222,7 @@
                 <configuration>
                     <toolchains>
                         <jdk>
-                            <version>${versions.jdkbuild}</version>
+                            <version>${versions.jdk}</version>
                             <vendor>temurin</vendor>
                         </jdk>
                     </toolchains>
