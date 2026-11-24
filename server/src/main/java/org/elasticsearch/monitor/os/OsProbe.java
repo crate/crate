@@ -46,6 +46,7 @@ import org.elasticsearch.monitor.os.OsStats.Cgroup.CpuStat;
 
 import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.common.SuppressForbidden;
+import io.crate.common.annotations.VisibleForTesting;
 
 
 public class OsProbe {
@@ -124,6 +125,62 @@ public class OsProbe {
         } catch (Exception e) {
             logger.warn("exception retrieving total physical memory", e);
             return 0;
+        }
+    }
+
+    /**
+     * The memory limit this process is actually confined to: the enclosing cgroup's limit when one
+     * applies and is lower, otherwise {@link #getTotalPhysicalMemorySize()}.
+     *
+     * <p>Inside a container, the host's total RAM routinely overstates what's really available -
+     * {@link #getTotalPhysicalMemorySize()} alone doesn't account for that.
+     */
+    public long getMemoryLimit() {
+        long totalPhysical = getTotalPhysicalMemorySize();
+        long cgroupLimit = getCgroupMemoryLimitInBytesOrNegativeOne();
+        // cgroups v1 reports a huge sentinel (near Long.MAX_VALUE) for "unconfined" - treat
+        // anything at or above the host's own total as no real limit.
+        if (cgroupLimit <= 0 || cgroupLimit >= totalPhysical) {
+            return totalPhysical;
+        }
+        return cgroupLimit;
+    }
+
+    /**
+     * Reads only the memory controller, unlike {@link #getCgroup()} - an unrelated CPU-cgroup read
+     * failure must never hide an otherwise-available memory limit.
+     */
+    private long getCgroupMemoryLimitInBytesOrNegativeOne() {
+        try {
+            return switch (getCgroupHierarchy()) {
+                case V1 -> {
+                    String memoryControlGroup = getControlGroups().get("memory");
+                    yield memoryControlGroup == null
+                        ? -1
+                        : parseCgroupMemoryLimitInBytes(getCgroupMemoryLimitInBytes(memoryControlGroup));
+                }
+                case V2 -> {
+                    String cgroupPath = getControlGroups().get("");
+                    yield cgroupPath == null
+                        ? -1
+                        : parseCgroupMemoryLimitInBytes(readSingleLine(PathUtils.get("/sys/fs/cgroup/", cgroupPath, "memory.max")));
+                }
+                case UNAVAILABLE -> -1;
+            };
+        } catch (IOException e) {
+            return -1;
+        }
+    }
+
+    @VisibleForTesting
+    static long parseCgroupMemoryLimitInBytes(String value) {
+        if (value == null || value.equals("max")) { // cgroups v2's spelling of "no limit"
+            return -1;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return -1;
         }
     }
 
