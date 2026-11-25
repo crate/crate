@@ -45,6 +45,7 @@ public final class RangeIterable<T> implements Iterable<Row> {
 
     public RangeIterable(T startInclusive,
                          T endInclusive,
+                         boolean reversed,
                          UnaryOperator<T> nextValue,
                          Comparator<T> comparator,
                          Function<T, Object> valueExtractor) {
@@ -55,7 +56,7 @@ public final class RangeIterable<T> implements Iterable<Row> {
         this.nextValue = nextValue;
         this.comparator = comparator;
         this.resultExtractor = valueExtractor;
-        reversed = comparator.compare(startInclusive, endInclusive) > 0;
+        this.reversed = reversed;
     }
 
     @Override
