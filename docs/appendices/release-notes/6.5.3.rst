@@ -55,3 +55,6 @@ Fixes
 
 - Fixed an issue that caused ``generate_series`` to round up milliseconds to
   seconds.
+
+- Fixed an issue that caused the milliseconds part in the interval step in
+  ``generate_series`` to be multiplied by 10.
