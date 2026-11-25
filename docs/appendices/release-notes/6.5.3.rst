@@ -46,5 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed an issue where a comparison on object columns could lead to a wrong
+  result if the objects had the same amount of keys and some values were
+  ``null``.
+
 - Fixed an issue that caused queries on sub-columns of ignored objects to match
   no rows.

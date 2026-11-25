@@ -142,4 +142,14 @@ public class MapComparatorTest extends ESTestCase {
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
     }
+
+    @Test
+    public void test_equals_on_map_with_same_size_and_null_entry_is_symmetric() throws Exception {
+        Map<String, Integer> map1 = MapBuilder.<String, Integer>newMapBuilder()
+            .put("x", null)
+            .map();
+        Map<String, Integer> map2 = Map.of("y", 1);
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(1);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(-1);
+    }
 }
