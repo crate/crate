@@ -135,7 +135,7 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
 
     @Override
     public @Nullable StorageSupport<? super Object> storageSupport() {
-        return new StorageSupport<>(false, false, EqQuery.nonMatchingEqQuery()) {
+        return new StorageSupport<>(false, false, EqQuery.nullQueries()) {
             @Override
             public ValueIndexer<? super Object> valueIndexer(RelationName table, Reference ref, Function<ColumnIdent, Reference> getRef) {
                 return new ValueIndexer<>() {
