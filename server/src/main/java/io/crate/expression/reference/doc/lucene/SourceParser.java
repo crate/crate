@@ -102,6 +102,10 @@ public final class SourceParser {
         this.strictMode = strictMode;
     }
 
+    public String storageIdentToDisplayIdent(String storageIdent) {
+        return this.lookupNameBySourceKey.apply(storageIdent);
+    }
+
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(SysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";

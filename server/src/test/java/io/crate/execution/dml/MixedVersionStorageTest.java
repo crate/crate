@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -37,6 +38,58 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.QueryTester;
 
 public class MixedVersionStorageTest extends CrateDummyClusterServiceUnitTest {
+
+    @Test
+    public void test_object_storage_format_from_6_6() throws Exception {
+        var oid = new AtomicLong();
+        var builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.V_6_6_0,
+            "create table t (o object(ignored) as (a int))",
+            oid::incrementAndGet
+        );
+        Map<String, Object> value = new HashMap<>();
+        value.put("a", null);
+        value.put("unknown", 20);
+        var parsedDocument = builder.indexValuesAndGetDocument(List.of("o"), value);
+        Map<String, Object> storedValue = new HashMap<>();
+        storedValue.put("2", null); // OID of o['a']
+        storedValue.put("_u_unknown", 20);
+        assertThat(parsedDocument.doc().getField("1").binaryValue())
+            .isEqualTo(ObjectIndexer.toBytes(storedValue, Version.V_6_6_0).toBytesRef());
+
+        try (var tester = builder.build()) {
+            assertThat(tester.runQuery("o", "true")).isEqualTo(List.of(value));
+            IndexerTest.assertTranslogParses(parsedDocument, tester.tableInfo(), Version.V_6_6_0);
+        }
+    }
+
+    @Test
+    public void test_object_storage_format_before_6_6() throws Exception {
+        var oid = new AtomicLong();
+        var builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.V_5_10_0,
+            "create table t (o object(ignored) as (a int))",
+            oid::incrementAndGet
+        );
+        Map<String, Object> value = new HashMap<>();
+        value.put("a", null);
+        value.put("unknown", 20);
+        var parsedDocument = builder.indexValuesAndGetDocument(List.of("o"), value);
+        Map<String, Object> storedValue = new HashMap<>();
+        storedValue.put("a", null);
+        storedValue.put("unknown", 20);
+        assertThat(parsedDocument.doc().getField("1").binaryValue())
+            .isEqualTo(ObjectIndexer.toBytes(storedValue, Version.V_5_10_0).toBytesRef());
+
+        try (var tester = builder.build()) {
+            assertThat(tester.runQuery("o", "true")).isEqualTo(List.of(value));
+            IndexerTest.assertTranslogParses(parsedDocument, tester.tableInfo(), Version.V_5_10_0);
+        }
+    }
 
     @Test
     public void test_reading_5_9_tables_with_raw() throws Exception {

@@ -110,7 +110,10 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         public Map<String, Object> decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
             try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
                 in.setVersion(tableVersion);
-                return in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+                return in.readMap(streamInput -> tableVersion.onOrAfter(Version.V_6_6_0) ?
+                        sourceParser.storageIdentToDisplayIdent(streamInput.readString()) :
+                        streamInput.readString(),
+                    StreamInput::readGenericValue);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

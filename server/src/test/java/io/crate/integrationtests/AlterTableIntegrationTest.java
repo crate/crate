@@ -345,6 +345,19 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("a2", "o2", "o2['a22']", "o2['b']", "c");
     }
 
+    // https://github.com/crate/crate/issues/20653
+    @Test
+    public void test_rename_null_valued_object_subcolumn() {
+        execute("create table t (id int, o object as (x int))");
+        execute("insert into t values (1, {x=1}), (2, {x=null})");
+        execute("refresh table t");
+
+        execute("alter table t rename column o['x'] to o['z']");
+
+        execute("select id, o from t order by id");
+        assertThat(response).hasRows("1| {z=1}", "2| {z=NULL}");
+    }
+
     @Test
     public void test_add_sub_column_to_ignored_parent_if_table_is_not_empty_logs_warning() throws Exception {
         execute("CREATE TABLE t1 (obj object(ignored))");
