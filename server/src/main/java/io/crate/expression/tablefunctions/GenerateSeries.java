@@ -30,6 +30,7 @@ import java.util.function.BinaryOperator;
 
 import org.elasticsearch.common.settings.Settings;
 import org.joda.time.Period;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -81,7 +82,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 signature,
                 boundSignature,
                 1L,
-                Long::sum,
+                GenerateSeries::sum,
                 Long::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
@@ -96,7 +97,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 signature,
                 boundSignature,
                 1,
-                Integer::sum,
+                GenerateSeries::sum,
                 Integer::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
@@ -114,7 +115,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 signature,
                 boundSignature,
                 1L,
-                Long::sum,
+                GenerateSeries::sum,
                 Long::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
@@ -164,6 +165,22 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                             "or if used with timestamps, it requires a third argument for the step (interval)");
                 }
             );
+        }
+    }
+
+    private static @Nullable Long sum(long x, long y) {
+        try {
+            return Math.addExact(x, y);
+        } catch (ArithmeticException e) {
+            return null;
+        }
+    }
+
+    private static @Nullable Integer sum(int x, int y) {
+        try {
+            return Math.addExact(x, y);
+        } catch (ArithmeticException e) {
+            return null;
         }
     }
 

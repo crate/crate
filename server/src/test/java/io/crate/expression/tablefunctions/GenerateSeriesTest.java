@@ -222,4 +222,21 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
                 """
         );
     }
+
+    @Test
+    public void test_generate_series_stops_at_max_value() {
+        Iterable<Row> rows = execute("generate_series(9223372036854775805, 9223372036854775807)");
+        assertThat(StreamSupport.stream(rows.spliterator(), false)
+            .limit(4)
+            .map(row -> row.get(0))
+            .toList()
+        ).containsExactly(9223372036854775805L, 9223372036854775806L, 9223372036854775807L);
+
+        rows = execute("generate_series(2147483645, 2147483647)");
+        assertThat(StreamSupport.stream(rows.spliterator(), false)
+            .limit(4)
+            .map(row -> row.get(0))
+            .toList()
+        ).containsExactly(2147483645, 2147483646, 2147483647);
+    }
 }
