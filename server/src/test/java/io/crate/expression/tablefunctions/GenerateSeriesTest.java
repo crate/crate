@@ -170,4 +170,17 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
                 """
         );
     }
+
+    @Test
+    public void test_generate_series_with_milliseconds_interval() {
+        assertExecute(
+            "generate_series('1970-01-01 00:00:00'::timestamp, '1970-01-01 00:00:00.300'::timestamp, '100 milliseconds'::interval)",
+            """
+                0
+                100
+                200
+                300
+                """
+        );
+    }
 }
