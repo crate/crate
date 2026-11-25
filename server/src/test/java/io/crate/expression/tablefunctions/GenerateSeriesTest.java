@@ -21,8 +21,15 @@
 
 package io.crate.expression.tablefunctions;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.stream.StreamSupport;
+
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
+
+import io.crate.data.Row;
 
 public class GenerateSeriesTest extends AbstractTableFunctionsTest {
 
@@ -85,7 +92,7 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
 
     @Test
     public void testEmptyOutputIfStartIsHigherThanStopWithDefaultStep() {
-        assertExecute("generate_series(10, 1)", "");
+        assertExecute("generate_series(4294967294, 3)", "");
     }
 
     @Test
@@ -108,6 +115,38 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
             "1\n" +
             "2\n"
         );
+    }
+
+    @Test
+    public void test_generate_series_with_more_than_long_max_rows() {
+        Iterable<Row> rows = execute("generate_series(-9223372036854775807, 0)");
+        assertThat(StreamSupport.stream(rows.spliterator(), false)
+            .limit(3)
+            .map(row -> row.get(0))
+            .toList()
+        ).containsExactly(-9223372036854775807L, -9223372036854775806L, -9223372036854775805L);
+    }
+
+    @Test
+    public void test_generate_series_with_step_0() {
+        assertThatThrownBy(() -> execute("generate_series(3, 5, 0)"))
+            .hasMessage("step size cannot equal zero");
+    }
+
+    @Test
+    public void test_generate_interval_with_step_0() {
+        assertThatThrownBy(() -> execute("generate_series('2008-03-01 00:00'::timestamp, '2008-03-04 12:00'::timestamp, '0 hours'::interval)"))
+            .hasMessage("step size cannot equal zero");
+    }
+
+    @Test
+    public void test_generate_series_start_less_than_stop_step_negative() {
+        assertExecute("generate_series(1, 4, -1)", "");
+    }
+
+    @Test
+    public void test_generate_interval_start_less_than_stop_step_negative() {
+        assertExecute("generate_series('2008-03-01 00:00'::timestamp, '2026-03-04 12:00'::timestamp, '-10 hours'::interval)", "");
     }
 
     @Test

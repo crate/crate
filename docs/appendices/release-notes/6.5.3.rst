@@ -61,3 +61,7 @@ Fixes
 
 - Fixed an issue where ``KILL <job id>`` could not stop a ``generate_series``
   call.
+
+- Fixed an issue that caused ``generate_series`` to return no rows, or to never
+  finish, if the series had more than 2147483647 values or if the step value
+  pointed away from the stop value.

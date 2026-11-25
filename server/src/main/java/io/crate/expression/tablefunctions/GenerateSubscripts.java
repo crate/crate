@@ -143,6 +143,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
         return new RangeIterable<>(
             startInclusive,
             stopInclusive,
+            reversed,
             value -> value + step,
             Integer::compareTo,
             i -> i
