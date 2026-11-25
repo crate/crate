@@ -37,14 +37,14 @@ public final class MapComparator {
             return sizeCompare;
         }
         for (Map.Entry<K, V> entry : m1.entrySet()) {
+            K key = entry.getKey();
             V thisValue = entry.getValue();
-            V otherValue = m2.get(entry.getKey());
+            V otherValue = m2.get(key);
             if (thisValue == null) {
-                if (otherValue != null) {
-                    return 1;
-                } else {
+                if (otherValue == null && m2.containsKey(key)) {
                     continue;
                 }
+                return 1;
             }
             if (!thisValue.equals(otherValue)) {
                 if (otherValue == null) {
