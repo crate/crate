@@ -35,6 +35,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -80,6 +81,17 @@ public class Limit extends ForwardingLogicalPlan {
         return offset;
     }
 
+    private static int toInt(Object value, int defaultValue) {
+        try {
+            return Objects.requireNonNullElse(DataTypes.INTEGER.sanitizeValue(value), defaultValue);
+        } catch (IllegalArgumentException ex) {
+            // converting IllegalArgumentEx to ConversionException is mostly to avoid LogicalPlanner
+            // from re-raising it into a "Couldn't create execution plan from..." error
+            throw new ConversionException(value, DataTypes.INTEGER);
+        }
+
+    }
+
     @Override
     public ExecutionPlan build(DependencyCarrier executor,
                                PlannerContext plannerContext,
@@ -91,23 +103,26 @@ public class Limit extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        int limit = Objects.requireNonNullElse(
-            DataTypes.INTEGER.sanitizeValue(evaluate(
+        int limit = toInt(
+            evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 this.limit,
                 params,
-                subQueryResults)),
-            NO_LIMIT);
-        int offset = Objects.requireNonNullElse(
-            DataTypes.INTEGER.sanitizeValue(evaluate(
+                subQueryResults
+            ),
+            NO_LIMIT
+        );
+        int offset = toInt(
+            evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 this.offset,
                 params,
-                subQueryResults)),
-            NO_OFFSET);
-
+                subQueryResults
+            ),
+            NO_OFFSET
+        );
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         List<DataType<?>> sourceTypes = Symbols.typeView(source.outputs());
