@@ -45,6 +45,7 @@ import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
+import io.crate.types.IntervalType;
 import io.crate.types.RowType;
 
 /**
@@ -80,9 +81,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 signature,
                 boundSignature,
                 1L,
-                (x, y) -> x - y,
                 Long::sum,
-                (x, y) -> x / y,
                 Long::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
@@ -97,9 +96,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 signature,
                 boundSignature,
                 1,
-                (x, y) -> x - y,
                 Integer::sum,
-                (x, y) -> x / y,
                 Integer::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
@@ -117,9 +114,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 signature,
                 boundSignature,
                 1L,
-                (x, y) -> x - y,
                 Long::sum,
-                (x, y) -> x / y,
                 Long::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
@@ -135,9 +130,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 signature,
                 boundSignature,
                 1,
-                (x, y) -> x - y,
                 Integer::sum,
-                (x, y) -> x / y,
                 Integer::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
@@ -175,25 +168,19 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     private final T defaultStep;
-    private final BinaryOperator<T> minus;
     private final BinaryOperator<T> plus;
-    private final BinaryOperator<T> divide;
     private final Comparator<T> comparator;
     private final RowType returnType;
 
     private GenerateSeries(Signature signature,
                            BoundSignature boundSignature,
                            T defaultStep,
-                           BinaryOperator<T> minus,
                            BinaryOperator<T> plus,
-                           BinaryOperator<T> divide,
                            Comparator<T> comparator,
                            RowType returnType) {
         super(signature, boundSignature);
         this.defaultStep = defaultStep;
-        this.minus = minus;
         this.plus = plus;
-        this.divide = divide;
         this.comparator = comparator;
         this.returnType = returnType;
     }
@@ -209,14 +196,14 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         if (startInclusive == null || stopInclusive == null || step == null) {
             return List.of();
         }
-        T diff = minus.apply(plus.apply(stopInclusive, step), startInclusive);
-        final int numRows = Math.max(0, divide.apply(diff, step).intValue());
-        if (numRows == 0) {
-            return List.of();
+        if (step.longValue() == 0) {
+            throw new IllegalArgumentException("step size cannot equal zero");
         }
-        return new RangeIterable<T>(
+        boolean reverse = step.longValue() < 0;
+        return new RangeIterable<>(
             startInclusive,
             stopInclusive,
+            reverse,
             value -> plus.apply(value, step),
             comparator,
             t -> t
@@ -252,13 +239,15 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
             }
             ZonedDateTime start = Instant.ofEpochMilli(startInclusive).atZone(ZoneOffset.UTC);
             ZonedDateTime stop = Instant.ofEpochMilli(stopInclusive).atZone(ZoneOffset.UTC);
-            boolean reverse = start.compareTo(stop) > 0;
-            if (reverse && add(start, step).compareTo(start) >= 0) {
-                return List.of();
+            int stepSignum = IntervalType.toStandardDuration(step).signum();
+            if (stepSignum == 0) {
+                throw new IllegalArgumentException("step size cannot equal zero");
             }
+            boolean reverse = stepSignum < 0;
             return new RangeIterable<>(
                 start,
                 stop,
+                reverse,
                 (value) -> add(value, step),
                 ZonedDateTime::compareTo,
                 value -> value.toInstant().toEpochMilli()
