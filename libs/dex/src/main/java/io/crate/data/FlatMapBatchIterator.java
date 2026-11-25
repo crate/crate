@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import io.crate.common.exceptions.Exceptions;
+
 public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut> {
 
     private final BatchIterator<TIn> source;
@@ -33,6 +35,7 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
     private TOut current = null;
     private boolean onSourceRow = false;
     private Iterator<TOut> mappedElements;
+    private volatile Throwable killed;
 
     public FlatMapBatchIterator(BatchIterator<TIn> source, Function<TIn, ? extends Iterator<TOut>> mapper) {
         this.source = source;
@@ -46,6 +49,7 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
 
     @Override
     public void moveToStart() {
+        raiseIfKilled();
         current = null;
         mappedElements = null;
         onSourceRow = false;
@@ -55,6 +59,7 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
     @Override
     public boolean moveNext() {
         while (true) {
+            raiseIfKilled();
             if (onSourceRow) {
                 if (mappedElements == null) {
                     mappedElements = mapper.apply(source.currentElement());
@@ -93,11 +98,18 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
 
     @Override
     public void kill(Throwable throwable) {
+        killed = throwable;
         source.kill(throwable);
     }
 
     @Override
     public boolean hasLazyResultSet() {
         return source.hasLazyResultSet();
+    }
+
+    private void raiseIfKilled() {
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
+        }
     }
 }
