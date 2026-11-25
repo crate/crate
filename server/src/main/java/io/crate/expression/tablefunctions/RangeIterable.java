@@ -64,6 +64,9 @@ public final class RangeIterable<T> implements Iterable<Row> {
         return new Iterator<>() {
             @Override
             public boolean hasNext() {
+                if (value == null) {
+                    return false;
+                }
                 int cmp = comparator.compare(value, endInclusive);
                 return reversed ? cmp >= 0 : cmp <= 0;
             }
