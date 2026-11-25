@@ -58,3 +58,7 @@ Fixes
 
 - Fixed an issue that caused the milliseconds part in the interval step in
   ``generate_series`` to be multiplied by 10.
+
+- Fixed an issue where ``KILL <job id>`` could not stop a stuck
+  ``generate_series`` call.
+

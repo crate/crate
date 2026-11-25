@@ -22,12 +22,14 @@
 package io.crate.data;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -71,5 +73,19 @@ class FlatMapBatchIteratorTest {
                 new Object[] { 3 }
             )
         );
+    }
+
+    @Test
+    public void test_moveNext_fails_after_kill_while_on_mapped_elements() {
+        InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(List.of(1), null,
+            false);
+        FlatMapBatchIterator<Integer, Integer> endless =
+            new FlatMapBatchIterator<>(source, x -> Stream.generate(() -> x).iterator());
+        assertThat(endless.moveNext()).isTrue();
+
+        InterruptedException kill = new InterruptedException("job killed");
+        endless.kill(kill);
+
+        assertThatThrownBy(endless::moveNext).isSameAs(kill);
     }
 }
