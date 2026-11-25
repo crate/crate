@@ -311,8 +311,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         buffer.writeByte('P');
         int messageStartIndex = buffer.writerIndex();
         buffer.writeInt(0);
-        Messages.writeCString(buffer, "S1");
-        Messages.writeCString(buffer, "select 1");
+        Messages.writeCString(buffer, "S1".getBytes(StandardCharsets.UTF_8));
+        Messages.writeCString(buffer, "select 1".getBytes(StandardCharsets.UTF_8));
         buffer.writeShort(numParams);
         for (int i = 0; i < numParams; i++) {
             buffer.writeInt(0);
