@@ -274,7 +274,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 .plusHours(step.getHours())
                 .plusMinutes(step.getMinutes())
                 .plusSeconds(step.getSeconds())
-                .plusNanos(step.getMillis() * 1000_0000L);
+                .plusNanos(step.getMillis() * 1_000_000L);
         }
 
         @Override
