@@ -594,6 +594,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_anyeq_on_object_ignored_child_uses_generic_function_filter() throws Exception {
+        Query query = convert("obj_ignored['x'] = ANY([1, 2, 3])");
+        assertThat(query)
+            .isExactlyInstanceOf(GenericFunctionQuery.class)
+            .hasToString("(_doc['obj_ignored']['x'] = ANY([1, 2, 3]))");
+    }
+
+    @Test
     public void test_equal_on_varchar_column_uses_term_query() throws Exception {
         Query query = convert("vchar_name = 'Trillian'");
         assertThat(query)
