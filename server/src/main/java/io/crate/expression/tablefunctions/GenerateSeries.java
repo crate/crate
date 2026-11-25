@@ -261,7 +261,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 stop,
                 (value) -> add(value, step),
                 ZonedDateTime::compareTo,
-                value -> value.toEpochSecond() * 1000
+                value -> value.toInstant().toEpochMilli()
             );
         }
 
