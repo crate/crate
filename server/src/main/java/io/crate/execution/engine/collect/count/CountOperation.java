@@ -47,6 +47,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
@@ -62,6 +63,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.profile.ProfilingContext;
 
 @Singleton
 public class CountOperation {
@@ -92,6 +94,14 @@ public class CountOperation {
                                          Map<String, IntIndexedContainer> indexShardMap,
                                          Symbol filter,
                                          boolean onPartitionedTable) {
+        return count(txnCtx, indexShardMap, filter, onPartitionedTable, null);
+    }
+
+    public CompletableFuture<Long> count(TransactionContext txnCtx,
+                                         Map<String, IntIndexedContainer> indexShardMap,
+                                         Symbol filter,
+                                         boolean onPartitionedTable,
+                                         @Nullable ProfilingContext profilingContext) {
         List<CompletableFuture<Supplier<Long>>> futureSuppliers = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
@@ -106,7 +116,7 @@ public class CountOperation {
             final Index index = indexMetadata.getIndex();
             for (IntCursor shardCursor : entry.getValue()) {
                 int shardValue = shardCursor.value;
-                futureSuppliers.add(prepareGetCount(txnCtx, index, shardValue, filter, onPartitionedTable));
+                futureSuppliers.add(prepareGetCount(txnCtx, index, shardValue, filter, onPartitionedTable, profilingContext));
             }
         }
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
@@ -124,6 +134,15 @@ public class CountOperation {
                                                              int shardId,
                                                              Symbol filter,
                                                              boolean onPartitionedTable) {
+        return prepareGetCount(txnCtx, index, shardId, filter, onPartitionedTable, null);
+    }
+
+    public CompletableFuture<Supplier<Long>> prepareGetCount(TransactionContext txnCtx,
+                                                             Index index,
+                                                             int shardId,
+                                                             Symbol filter,
+                                                             boolean onPartitionedTable,
+                                                             @Nullable ProfilingContext profilingContext) {
         IndexService indexService;
         IndexShard indexShard;
         try {
@@ -140,7 +159,7 @@ public class CountOperation {
         CompletableFuture<Supplier<Long>> futureCount = new CompletableFuture<>();
         indexShard.awaitShardSearchActive(b -> {
             try {
-                futureCount.complete(() -> syncCount(indexService, indexShard, txnCtx, filter, onPartitionedTable));
+                futureCount.complete(() -> syncCount(indexService, indexShard, txnCtx, filter, onPartitionedTable, profilingContext));
             } catch (Throwable t) {
                 futureCount.completeExceptionally(t);
             }
@@ -154,11 +173,23 @@ public class CountOperation {
                    TransactionContext txnCtx,
                    Symbol filter,
                    boolean onPartitionedTable) {
+        return syncCount(indexService, indexShard, txnCtx, filter, onPartitionedTable, null);
+    }
+
+    @VisibleForTesting
+    long syncCount(IndexService indexService,
+                   IndexShard indexShard,
+                   TransactionContext txnCtx,
+                   Symbol filter,
+                   boolean onPartitionedTable,
+                   @Nullable ProfilingContext profilingContext) {
         Runnable raiseIfKilled = () -> {
             if (Thread.interrupted()) {
                 throw JobKilledException.of("thread interrupted during count-operation");
             }
         };
+        long startTime = profilingContext == null ? 0L : System.nanoTime();
+        String queryDescription = null;
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
             DocTableInfo table = schemas.getTableInfo(indexShard.shardId().getIndex());
@@ -173,7 +204,9 @@ public class CountOperation {
                 raiseIfKilled
             );
             raiseIfKilled.run();
-            return searcher.count(queryCtx.query());
+            var query = queryCtx.query();
+            queryDescription = query.toString();
+            return searcher.count(query);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (IllegalIndexShardStateException e) {
@@ -181,6 +214,28 @@ public class CountOperation {
                 return 0L;
             }
             throw e;
+        } finally {
+            if (profilingContext != null) {
+                long durationNanos = System.nanoTime() - startTime;
+                try {
+                    PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
+                    String schemaName = partitionName.relationName().schema();
+                    String tableName = partitionName.relationName().name();
+                    String partitionIdent = partitionName.values().isEmpty() ? null : partitionName.ident();
+                    int shardId = indexShard.shardId().id();
+                    String description = queryDescription != null ? queryDescription : (filter != null ? filter.toString() : "");
+                    profilingContext.recordCountTiming(
+                        schemaName,
+                        tableName,
+                        partitionIdent,
+                        shardId,
+                        "CountQuery",
+                        description,
+                        durationNanos
+                    );
+                } catch (Exception ignored) {
+                }
+            }
         }
     }
 

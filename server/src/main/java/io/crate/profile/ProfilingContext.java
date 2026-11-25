@@ -22,18 +22,23 @@
 package io.crate.profile;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.profile.ProfileResult;
 import org.elasticsearch.search.profile.query.QueryProfiler;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.PartitionName;
 
 /**
@@ -45,15 +50,74 @@ import io.crate.metadata.PartitionName;
  */
 public class ProfilingContext {
 
+    public record CountShardTiming(
+        String schemaName,
+        String tableName,
+        @Nullable String partitionIdent,
+        int shardId,
+        String queryName,
+        String queryDescription,
+        double durationInMs
+    ) {}
+
+    private static final Comparator<CountShardTiming> COUNT_SHARD_TIMING_COMPARATOR = Comparator
+        .comparing(CountShardTiming::schemaName)
+        .thenComparing(CountShardTiming::tableName)
+        .thenComparing(CountShardTiming::partitionIdent, Comparator.nullsFirst(Comparator.naturalOrder()))
+        .thenComparingInt(CountShardTiming::shardId);
+
     private static final double NS_TO_MS_FACTOR = 1_000_000.0d;
     private final HashMap<String, Double> durationInMSByTimer;
     private final Map<ShardId, QueryProfiler> profilers;
     private final ClusterState currentState;
+    private final ConcurrentLinkedQueue<CountShardTiming> countTimings;
 
     public ProfilingContext(Map<ShardId, QueryProfiler> profilers, ClusterState currentState) {
         this.profilers = profilers;
         this.durationInMSByTimer = new HashMap<>();
         this.currentState = currentState;
+        this.countTimings = new ConcurrentLinkedQueue<>();
+    }
+
+    public void recordCountTiming(String schemaName,
+                                  String tableName,
+                                  @Nullable String partitionIdent,
+                                  int shardId,
+                                  String queryName,
+                                  String queryDescription,
+                                  long durationNanos) {
+        recordCountTiming(
+            schemaName,
+            tableName,
+            partitionIdent,
+            shardId,
+            queryName,
+            queryDescription,
+            durationNanos / NS_TO_MS_FACTOR
+        );
+    }
+
+    public void recordCountTiming(String schemaName,
+                                  String tableName,
+                                  @Nullable String partitionIdent,
+                                  int shardId,
+                                  String queryName,
+                                  String queryDescription,
+                                  double durationInMs) {
+        countTimings.add(new CountShardTiming(
+            schemaName,
+            tableName,
+            partitionIdent,
+            shardId,
+            queryName,
+            queryDescription,
+            durationInMs
+        ));
+    }
+
+    @VisibleForTesting
+    public Collection<CountShardTiming> getCountTimings() {
+        return Collections.unmodifiableCollection(countTimings);
     }
 
     public Map<String, Object> getDurationInMSByTimer() {
@@ -65,6 +129,13 @@ public class ProfilingContext {
             var profiler = entry.getValue();
             for (var profileResult : profiler.getTree()) {
                 queryTimings.add(resultAsMap(shardId, profileResult, partitionName));
+            }
+        }
+        if (!countTimings.isEmpty()) {
+            List<CountShardTiming> sortedCountTimings = new ArrayList<>(countTimings);
+            sortedCountTimings.sort(COUNT_SHARD_TIMING_COMPARATOR);
+            for (var timing : sortedCountTimings) {
+                queryTimings.add(countResultAsMap(timing));
             }
         }
         if (!queryTimings.isEmpty()) {
@@ -101,6 +172,20 @@ public class ProfilingContext {
             queryTimingsBuilder.put("Children", children);
         }
         return Collections.unmodifiableMap(queryTimingsBuilder);
+    }
+
+    private static Map<String, Object> countResultAsMap(CountShardTiming timing) {
+        TreeMap<String, Object> countTimingsBuilder = new TreeMap<>();
+        countTimingsBuilder.put("SchemaName", timing.schemaName());
+        countTimingsBuilder.put("TableName", timing.tableName());
+        if (timing.partitionIdent() != null && !timing.partitionIdent().isEmpty()) {
+            countTimingsBuilder.put("PartitionIdent", timing.partitionIdent());
+        }
+        countTimingsBuilder.put("ShardId", timing.shardId());
+        countTimingsBuilder.put("QueryName", timing.queryName());
+        countTimingsBuilder.put("QueryDescription", timing.queryDescription());
+        countTimingsBuilder.put("Time", timing.durationInMs());
+        return Collections.unmodifiableMap(countTimingsBuilder);
     }
 
     public Timer createAndStartTimer(String name) {

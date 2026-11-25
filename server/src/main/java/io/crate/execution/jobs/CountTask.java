@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;
@@ -35,6 +36,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.metadata.TransactionContext;
+import io.crate.profile.ProfilingContext;
 
 public class CountTask extends AbstractTask {
 
@@ -44,6 +46,8 @@ public class CountTask extends AbstractTask {
     private final RowConsumer consumer;
     private final Map<String, IntIndexedContainer> indexShardMap;
     private final RamAccounting ramAccounting;
+    @Nullable
+    private final ProfilingContext profilingContext;
     private CompletableFuture<Long> countFuture;
 
     private volatile Throwable killReason;
@@ -55,6 +59,16 @@ public class CountTask extends AbstractTask {
               RowConsumer consumer,
               Map<String, IntIndexedContainer> indexShardMap,
               RamAccounting ramAccounting) {
+        this(countPhase, txnCtx, countOperation, consumer, indexShardMap, ramAccounting, null);
+    }
+
+    CountTask(CountPhase countPhase,
+              TransactionContext txnCtx,
+              CountOperation countOperation,
+              RowConsumer consumer,
+              Map<String, IntIndexedContainer> indexShardMap,
+              RamAccounting ramAccounting,
+              @Nullable ProfilingContext profilingContext) {
         super(countPhase.phaseId());
         this.countPhase = countPhase;
         this.txnCtx = txnCtx;
@@ -62,6 +76,7 @@ public class CountTask extends AbstractTask {
         this.consumer = consumer;
         this.indexShardMap = indexShardMap;
         this.ramAccounting = ramAccounting;
+        this.profilingContext = profilingContext;
         this.consumer.completionFuture().whenComplete((r, f) -> {
             bytesUsed = ramAccounting.totalBytes();
             ramAccounting.close();
@@ -71,7 +86,11 @@ public class CountTask extends AbstractTask {
     @Override
     public synchronized CompletableFuture<Void> innerStart() {
         try {
-            countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where(), countPhase.ignoreUnavailableIndex());
+            if (profilingContext == null) {
+                countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where(), countPhase.ignoreUnavailableIndex());
+            } else {
+                countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where(), countPhase.ignoreUnavailableIndex(), profilingContext);
+            }
         } catch (Throwable t) {
             consumer.accept(null, t);
             return null;

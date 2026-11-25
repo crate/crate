@@ -116,6 +116,11 @@ public class RootTask implements CompletionListenable<Void> {
             return this;
         }
 
+        @Nullable
+        public ProfilingContext profilingContext() {
+            return profilingContext;
+        }
+
         public void addTask(Task task) {
             assert tasks.stream().noneMatch(x -> x.id() == task.id()) : "Task with id=" + task.id() + " already registered. " + tasks;
             tasks.add(task);
