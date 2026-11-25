@@ -22,10 +22,10 @@
 package io.crate.interval;
 
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
+import static io.crate.interval.IntervalParser.parseInteger;
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
-import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
@@ -204,7 +204,4 @@ final class PGIntervalParser {
         return -1;
     }
 
-    private static int parseInteger(String value) {
-        return new BigDecimal(value).intValue();
-    }
 }

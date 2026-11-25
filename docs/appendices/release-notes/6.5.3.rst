@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Added overflow handling for interval literals where any of the units exceeds
+  the integer range.
+
 - Fixed an issue where a comparison on object columns could lead to a wrong
   result if the objects had the same amount of keys and some values were
   ``null``.

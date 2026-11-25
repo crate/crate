@@ -21,12 +21,12 @@
 
 package io.crate.interval;
 
+import java.math.BigDecimal;
+
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.joda.time.format.ISOPeriodFormat;
-
 import org.jspecify.annotations.Nullable;
-import java.math.BigDecimal;
 
 public final class IntervalParser {
 
@@ -157,8 +157,19 @@ public final class IntervalParser {
             .multiply(new BigDecimal(1000)).intValue();
     }
 
+    /// Returns the value as integer with overflow protection.
+    /// Accepts floating point values, truncating them.
+    static int parseInteger(String value) {
+        BigDecimal bigDecimal = new BigDecimal(value);
+        long longValue = bigDecimal.longValue();
+        if (longValue != (int) longValue) {
+            throw new IllegalArgumentException("Value exceeds integer range: " + value);
+        }
+        return (int) longValue;
+    }
+
     static int nullSafeIntGet(String value) {
-        return (value == null) ? null : Integer.parseInt(value);
+        return (value == null) ? null : parseInteger(value);
     }
 
 }
