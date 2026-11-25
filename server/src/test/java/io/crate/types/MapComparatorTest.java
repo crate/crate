@@ -30,6 +30,8 @@ import java.util.Map;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.common.collections.MapBuilder;
+
 public class MapComparatorTest extends ESTestCase {
 
     @Test
@@ -41,71 +43,76 @@ public class MapComparatorTest extends ESTestCase {
 
     @Test
     public void testCompareMapsWithNullValues() {
-        Map<String, Integer> map1 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", null);
-                put("str3", 3);
-            }};
-        Map<String, Integer> map2 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", 2);
-                put("str3", 3);
-            }};
+        Map<String, Integer> map1 = MapBuilder.<String, Integer>newMapBuilder()
+            .put("str1", 1)
+            .put("str2", null)
+            .put("str3", 3)
+            .map();
+        Map<String, Integer> map2 = Map.of(
+            "str1", 1,
+            "str2", 2,
+            "str3", 3
+        );
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(1);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(-1);
 
+        map2 = new HashMap<>(map2);
         map2.put("str2", null);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
     }
 
     @Test
     public void testCompareMapsWithValuesOfTheSameClass() {
-        Map<String, Integer> map1 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", 2);
-                put("str3", 3);
-            }};
-        Map<String, Integer> map2 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", 2);
-                put("str3", 3);
-            }};
+        Map<String, Integer> map1 = Map.of(
+            "str1", 1,
+            "str2", 2,
+            "str3", 3
+        );
+        Map<String, Integer> map2 = Map.of(
+            "str1", 1,
+            "str2", 2,
+            "str3", 3
+        );
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
 
+        map1 = new HashMap<>(map1);
         map1.put("str2", 5);
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(1);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(-1);
     }
 
+    @Test
     public void testCompareMapsWithValuesOfDifferentClass() {
-        Map<String, Number> map1 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", 2);
-                put("str3", 3);
-            }};
-        Map<String, Number> map2 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", 2L);
-                put("str3", 3);
-            }};
+        Map<String, Number> map1 = Map.of(
+            "str1", 1,
+            "str2", 2,
+            "str3", 3
+        );
+        Map<String, Number> map2 = Map.of(
+            "str1", 1,
+            "str2", 2L,
+            "str3", 3
+        );
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
 
+        map1 = new HashMap<>(map1);
         map1.put("str2", 5.0);
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(1);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(-1);
     }
 
+    @Test
     public void testCompareMapsWithValuesOfDifferentClassNested() {
-        Map<String, Object> map1 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", Map.of("str3", Short.valueOf("1234")));
-            }};
-        Map<String, Object> map2 = new HashMap<>() {{
-                put("str1", 1);
-                put("str2", Map.of("str3", Short.valueOf("1234")));
-            }};
+        Map<String, Object> map1 = MapBuilder.<String, Object>newMapBuilder()
+            .put("str1", 1)
+            .put("str2", Map.of("str3", Short.valueOf("1234")))
+            .map();
+        Map<String, Object> map2 = Map.of(
+            "str1", 1,
+            "str2", Map.of("str3", Short.valueOf("1234"))
+        );
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
 
@@ -118,19 +125,20 @@ public class MapComparatorTest extends ESTestCase {
         assertThat(MapComparator.compareMaps(map2, map1)).isGreaterThan(1);
     }
 
+    @Test
     public void testCompareMapsWithStringAndBytesRef() {
         /*
          * this can happen when you compare an object with an object literal
          * ... WHERE o = {"x" = 'foo'}
          */
-        Map<String, Object> map1 = new HashMap<>() {{
-                put("str1", "a");
-                put("str3", "3");
-            }};
-        Map<String, Object> map2 = new HashMap<>() {{
-                put("str1", "a");
-                put("str3", 3);
-            }};
+        Map<String, Object> map1 = Map.of(
+            "str1", "a",
+            "str3", "3"
+        );
+        Map<String, Object> map2 = Map.of(
+            "str1", "a",
+            "str3", "3"
+        );
         assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
     }
