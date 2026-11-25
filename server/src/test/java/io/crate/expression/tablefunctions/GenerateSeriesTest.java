@@ -158,4 +158,16 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
             .hasMessageContaining(
                     "generate_series(start, stop) has type `timestamp with time zone` for start, but requires long/int values for start and stop, or if used with timestamps, it requires a third argument for the step (interval)");
     }
+
+    @Test
+    public void test_generate_series_interval_keeps_milliseconds_of_start() {
+        assertExecute(
+            "generate_series('1970-01-01 00:00:00.500'::timestamp, '1970-01-01 00:00:02.500'::timestamp, '1 second'::interval)",
+            """
+                500
+                1500
+                2500
+                """
+        );
+    }
 }

@@ -52,3 +52,6 @@ Fixes
 
 - Fixed an issue that caused queries on sub-columns of ignored objects to match
   no rows.
+
+- Fixed an issue that caused ``generate_series`` to round up milliseconds to
+  seconds.
