@@ -221,4 +221,19 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
         assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)
             .withPeriodType(PeriodType.yearMonthDayTime()));
     }
+
+    @Test
+    public void test_fails_on_overflow() throws Exception {
+        assertThatThrownBy(() -> e.asSymbol("interval '4294967297 second'"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'4294967297 second'` of type `text` to type `interval`");
+
+        assertThatThrownBy(() -> e.asSymbol("interval '4294967297 minute'"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'4294967297 minute'` of type `text` to type `interval`");
+
+        assertThatThrownBy(() -> e.asSymbol("interval '4294967297 hour'"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'4294967297 hour'` of type `text` to type `interval`");
+    }
 }
