@@ -108,8 +108,9 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
     }
 
     private void raiseIfKilled() {
-        if (killed != null) {
-            Exceptions.rethrowUnchecked(killed);
+        Throwable t = killed;
+        if (t != null) {
+            Exceptions.rethrowUnchecked(t);
         }
     }
 }
