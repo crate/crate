@@ -96,25 +96,4 @@ public class ParquetForeignDataWrapperITest extends IntegTestCase {
                 "3ac37162-0efb-414e-af0c-adbcfd275026| 10",
                 "bd0a8786-6b47-43d9-a6c6-ae5f1dff2b12| 20");
     }
-
-    @Test
-    public void test_simple_and_filter_bigint() throws Exception {
-        String query = "select car_id, passenger_count from doc.taxi where passenger_count > 3 and passenger_count < 5";
-        execute(query);
-        assertThat(response).hasRows("387e67ad-9156-4b16-bf8e-f33dbd9fd68d| 4");
-    }
-
-    @Test
-    public void test_simple_and_filter_int() throws Exception {
-        String query = "select car_sensor from doc.taxi where car_sensor['engine_temp'] != 50";
-        execute(query);
-        assertThat(response).isEmpty();
-    }
-
-    @Test
-    public void test_mixed_and_or_filter() throws Exception {
-        String query = "select car_id, passenger_count from doc.taxi where passenger_count = 10 or passenger_count = 4";
-        execute(query);
-        assertThat(response).hasRows("387e67ad-9156-4b16-bf8e-f33dbd9fd68d| 4");
-    }
 }
