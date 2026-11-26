@@ -108,6 +108,14 @@ public class IntegerType extends IntegralType<Integer> implements Streamer<Integ
         return this;
     }
 
+    private static int ofNumber(Number n) {
+        long longVal = n.longValue();
+        if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
+            throw new IllegalArgumentException("integer value out of range: " + longVal);
+        }
+        return (int) longVal;
+    }
+
     @Override
     public Integer implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
@@ -127,11 +135,7 @@ public class IntegerType extends IntegralType<Integer> implements Streamer<Integ
             }
             return ((BigDecimal) value).intValue();
         } else if (value instanceof Number number) {
-            long longVal = number.longValue();
-            if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
-                throw new IllegalArgumentException("integer value out of range: " + longVal);
-            }
-            return ((Number) value).intValue();
+            return ofNumber(number);
         } else if (value instanceof Regclass regclass) {
             return regclass.oid();
         } else if (value instanceof Regtype regtype) {
@@ -148,7 +152,7 @@ public class IntegerType extends IntegralType<Integer> implements Streamer<Integ
         } else if (value instanceof Integer i) {
             return i;
         } else {
-            return ((Number) value).intValue();
+            return ofNumber((Number) value);
         }
     }
 

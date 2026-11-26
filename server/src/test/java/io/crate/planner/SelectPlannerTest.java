@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -43,6 +44,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.VersioningValidationException;
@@ -1800,5 +1802,19 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                     .hasName("x")
                     .hasType(StringType.of(3))
         );
+    }
+
+    @Test
+    public void test_limit_and_offset_have_bound_checks() throws Exception {
+        var e = SQLExecutor.of(clusterService);
+        String stmt1 = "select * from generate_series(1, 10) as t (x) limit 4294967298";
+        assertThatThrownBy(() -> e.plan(stmt1))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast value `4294967298` to type `integer`");
+
+        String stmt2 = "select * from generate_series(1, 10) as t (x) limit 2 offset 4294967298";
+        assertThatThrownBy(() -> e.plan(stmt2))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast value `4294967298` to type `integer`");
     }
 }

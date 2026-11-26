@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Queries with a limit or offset higher than the integer max value now cause a
+  failure instead of silently wrapping.
+
 - Fixed an issue where a comparison on object columns could lead to a wrong
   result if the objects had the same amount of keys and some values were
   ``null``.
