@@ -445,7 +445,7 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("refresh table t");
         execute("SELECT _raw FROM t");
         assertThat(response).hasRows(
-            "{\"1\":\"[1 1 32 1 0 0 0 2]\",\"2\":1}"
+            "{\"1\":\"[1 4 5f 75 5f 32 1 0 0 0 2]\",\"2\":1}"
         );
 
         execute("SELECT * FROM t");

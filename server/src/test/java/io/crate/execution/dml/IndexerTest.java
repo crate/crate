@@ -1589,10 +1589,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument parsedDocument = indexer.index(item(MapBuilder.newMapBuilder().put("a", null).put("c", 1).map()));
         assertThat(source(parsedDocument, table)).isEqualTo("{\"o\":{\"a\":null,\"b\":null,\"c\":1}}");
 
-        // notice null valued sub-columns and non-null sub-columns are persisted differently
         Map<String, Object> storedValue = new HashMap<>();
-        storedValue.put("a", null);
-        storedValue.put("b", null);
+        storedValue.put("2", null); // "2" is the oid for 'a'
+        storedValue.put("3", null); // "3" is the oid for 'b'
         assertThat(parsedDocument.doc().getField("1").binaryValue()) // "1" is the oid for 'o'
             .isEqualTo(ObjectIndexer.toBytes(storedValue, Version.CURRENT).toBytesRef());
         assertThat(parsedDocument.doc().getField("4").numericValue()).isEqualTo(1); // "4" is the oid for 'c'

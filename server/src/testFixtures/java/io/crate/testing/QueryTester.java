@@ -154,6 +154,11 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValues(List<String> columns, Object ... values) throws IOException {
+            indexValuesAndGetDocument(columns, values);
+            return this;
+        }
+
+        public ParsedDocument indexValuesAndGetDocument(List<String> columns, Object ... values) throws IOException {
             IndexMetadata indexMetadata = plannerContext.clusterState().metadata().getIndex(table.ident(), List.of(), true, im -> im);
             Indexer indexer = new Indexer(
                 indexMetadata.partitionValues(),
@@ -167,7 +172,7 @@ public final class QueryTester implements AutoCloseable {
             var item = new IndexItem.StaticItem("dummy-id", List.of(), values, -1L, -1L);
             ParsedDocument parsedDocument = indexer.index(item);
             indexEnv.writer().addDocument(parsedDocument.doc());
-            return this;
+            return parsedDocument;
         }
 
         private LuceneBatchIterator getIterator(ColumnIdent column, Query query) {

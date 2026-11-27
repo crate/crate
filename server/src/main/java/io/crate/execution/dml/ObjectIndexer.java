@@ -127,14 +127,29 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             String k = entry.getKey();
             Object v = entry.getValue();
             try {
-                if (children.containsKey(k) == false) {
-                    translogWriter.writeFieldName(this.unknownColumnPrefix + k);
-                    translogWriter.writeValue(v);
-                    columnsToStore.put(k, v);
-                } else if (v == null) {
-                    translogWriter.writeFieldName(k);
-                    translogWriter.writeValue(null);
-                    columnsToStore.put(k, null);
+                if (docBuilder.getTableVersionCreated().onOrAfter(Version.V_6_6_0)) {
+                    Child child = children.get(k);
+                    if (child == null) {
+                        String storageIdentFoUnknownCol = this.unknownColumnPrefix + k;
+                        translogWriter.writeFieldName(storageIdentFoUnknownCol);
+                        translogWriter.writeValue(v);
+                        columnsToStore.put(storageIdentFoUnknownCol, v);
+                    } else if (v == null) {
+                        String childName = child.reference.storageIdentLeafName();
+                        translogWriter.writeFieldName(childName);
+                        translogWriter.writeValue(null);
+                        columnsToStore.put(childName, null);
+                    }
+                } else {
+                    if (children.containsKey(k) == false) {
+                        translogWriter.writeFieldName(this.unknownColumnPrefix + k);
+                        translogWriter.writeValue(v);
+                        columnsToStore.put(k, v);
+                    } else if (v == null) {
+                        translogWriter.writeFieldName(k);
+                        translogWriter.writeValue(null);
+                        columnsToStore.put(k, null);
+                    }
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -161,6 +176,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         translogWriter.endObject();
     }
 
+    // All keys in 'v' must be in storage key format
     public static BytesReference toBytes(Map<String, Object> v, Version version) {
         try (BytesStreamOutput out = new BytesStreamOutput()) {
             out.setVersion(version);
