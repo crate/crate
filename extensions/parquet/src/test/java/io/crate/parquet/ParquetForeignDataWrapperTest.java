@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.settings.Settings;
@@ -75,20 +76,28 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
                 .build();
         e = SQLExecutor.of(clusterService)
                 .addServer("pq", "parquet", "crate", options)
-                .addForeignTable(
-                        """
-                        create foreign table doc.taxi
-                        (passenger_count bigint,
-                        car_sensor object(strict) as (
-                            engine_temp int,
-                            outdoor_temp object(strict) as (
-                                unit text,
-                                value int
-                            )
-                        ),
-                        car_sensor_json_ignored_policy object(ignored),
-                        car_sensor_json object
-            ) server pq""");
+                .addForeignTable("""
+                create foreign table doc.taxi
+                (trip_distance double, passenger_count bigint,
+                big_car boolean, trip_type text,
+                car_id uuid, car_sensor_json object,
+                car_sensor_json_ignored_policy object(ignored),
+                car_sensor object(strict) as (
+                    engine_temp int,
+                    outdoor_temp object(strict) as (
+                        unit text,
+                        value int
+                    )
+                ),
+                car_sensor_mixed_objects object(strict) as (
+                    engine_temp int,
+                    outdoor_temp object
+                ),
+                tire_health array(integer), tpep_pickup_datetime timestamp without time zone,
+                taxi_start date, taxi_start_shift timestamp with time zone,
+                steering_wheel_count smallint, total_amount_earned decimal(18,3),
+                bstr bit, ip_address ip, ip_address_long ip, car_weight float) server pq;
+                """);
 
 
         foreignTable = e.resolveTableInfo("doc.taxi");
@@ -124,6 +133,45 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
             new Object[]{6L, 3L},
             new Object[]{null, null}
         );
+    }
+
+    @Test
+    public void test_handles_unprojected_filter() throws Exception {
+        BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
+            List.of(e.asSymbol("passenger_count")),
+            e.asSymbol("trip_distance < 1")).get();
+        List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
+        assertThat(rows).containsExactly(
+            new Object[]{1L},
+            new Object[]{0L}
+        );
+    }
+
+    @Test
+    public void test_simple_and_filter_bigint() throws Exception {
+        BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
+            List.of(e.asSymbol("car_id"), e.asSymbol("passenger_count")),
+            e.asSymbol("passenger_count > 3 and passenger_count < 5")).get();
+        List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
+        assertThat(rows).containsExactly(new Object[]{UUID.fromString("387e67ad-9156-4b16-bf8e-f33dbd9fd68d"), 4L});
+    }
+
+    @Test
+    public void test_simple_and_filter_int() throws Exception {
+        BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
+            List.of(e.asSymbol("car_sensor")),
+            e.asSymbol("car_sensor['engine_temp'] != 50")).get();
+        List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
+        assertThat(rows).isEmpty();
+    }
+
+    @Test
+    public void test_mixed_and_or_filter() throws Exception {
+        BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
+            List.of(e.asSymbol("car_id"), e.asSymbol("passenger_count")),
+            e.asSymbol("passenger_count = 10 or passenger_count = 4")).get();
+        List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
+        assertThat(rows).containsExactly(new Object[]{UUID.fromString("387e67ad-9156-4b16-bf8e-f33dbd9fd68d"), 4L});
     }
 
     @Test

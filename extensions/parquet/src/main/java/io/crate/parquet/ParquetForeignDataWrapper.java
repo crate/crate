@@ -28,6 +28,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.opendal.AsyncExecutor;
@@ -40,6 +41,7 @@ import org.elasticsearch.common.settings.Settings;
 import dev.hardwood.InputFile;
 import io.crate.common.io.IOUtils;
 import io.crate.data.BatchIterator;
+import io.crate.data.FilteringBatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.UnauthorizedException;
@@ -48,7 +50,9 @@ import io.crate.execution.dsl.projection.builder.InputColumns.SourceSymbols;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.pipeline.InputRowProjector;
 import io.crate.expression.InputFactory;
+import io.crate.expression.RowFilter;
 import io.crate.expression.InputFactory.Context;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ServersMetadata.Server;
@@ -60,6 +64,10 @@ import io.crate.opendal.S3Env;
 import io.crate.opendal.S3URI;
 import io.crate.opendal.SharedAsyncExecutor;
 import io.crate.role.Role;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.expression.symbol.Function;
 
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
@@ -70,6 +78,10 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     private final Setting<String> regionSetting = Setting.simpleString("region");
     private final List<Setting<?>> mandatoryServerOptions = List.of(filesSetting);
     private final List<Setting<?>> optionalServerOptions = List.of(protocolSetting, regionSetting);
+
+    private static final Set<String> SUPPORTED_PREDICATE_PUSHDOWN_TYPES = Set.of(LongType.NAME, IntegerType.NAME);
+
+    private record Predicates(Symbol pushable, Symbol notPushable) {}
 
     public static List<InputFile> urisToInputFiles(AsyncExecutor asyncExecutor,
                                                    Role currentUser,
@@ -109,7 +121,7 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
     @Override
     public boolean supportsQueryPushdown(Symbol query) {
-        return false;
+        return true;
     }
 
     @Override
@@ -121,6 +133,50 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     public List<Setting<?>> optionalServerOptions() {
         return optionalServerOptions;
     }
+
+    private static boolean isPushable(Symbol conjunct) {
+        if (conjunct instanceof Function function) {
+            if (!ParquetBatchIterator.FILTER_PUSHDOWN_OPERATORS.containsKey(function.name())) {
+                return false;
+            }
+
+            assert function.arguments().size() == 2;
+            Symbol lhs = function.arguments().get(0);
+            Symbol rhs = function.arguments().get(1);
+            if (!(lhs instanceof Reference ref && rhs instanceof Literal)
+                    || !SUPPORTED_PREDICATE_PUSHDOWN_TYPES.contains(ref.valueType().getName())) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static Predicates classifyPredicates(Symbol query) {
+        List<Symbol> pushable = new ArrayList<>();
+        List<Symbol> notPushable = new ArrayList<>();
+        if (query instanceof Function function) {
+            if (function.name().equals(AndOperator.NAME)) {
+                for (Symbol conjunct : AndOperator.split(query)) {
+                    if (isPushable(conjunct)) {
+                        pushable.add(conjunct);
+                    } else {
+                        notPushable.add(conjunct);
+                    }
+                }
+            } else {
+                if (isPushable(function)) {
+                    pushable.add(function);
+                } else {
+                    notPushable.add(function);
+                }
+            }
+
+        }
+        return new Predicates(AndOperator.join(pushable), AndOperator.join(notPushable));
+    }
+
+
 
     @Override
     public CompletableFuture<BatchIterator<Row>> getIterator(Role currentUser,
@@ -136,7 +192,11 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
         }
 
         List<Reference> columns = new ArrayList<>();
-        for (Symbol symbol : collect) {
+        List<Symbol> allSymbols = new ArrayList<>(collect);
+        // A predicate may reference a column that isn't in the SELECT statement and that cannot be pushed down.
+        // We must include those references in projection pushdown into Hardwood so that the FilteringBatchIterator later has the data to filter.
+        allSymbols.add(query);
+        for (Symbol symbol : allSymbols) {
             symbol.visit(Reference.class, ref -> {
                 ColumnIdent col = ref.column();
                 if (!col.isRoot()) {
@@ -151,6 +211,10 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
 
         SourceSymbols sourceRefs = new InputColumns.SourceSymbols(columns);
+
+        Predicates predicates = classifyPredicates(query);
+        Symbol retainedPredicate = InputColumns.create(predicates.notPushable, sourceRefs);
+
         List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
         Context<CollectExpression<Row, ?>> inputCtx = inputFactory.ctxForInputColumns(txnCtx, inputColumns);
         InputRowProjector inputRowProjector = new InputRowProjector(
@@ -160,7 +224,8 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
         AsyncExecutor asyncExecutor = sharedAsyncExecutor.asyncExecutor();
         List<InputFile> inputFiles = urisToInputFiles(asyncExecutor, currentUser, pathsToFiles, options);
-        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
+        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns, predicates.pushable);
+        it = new FilteringBatchIterator<>(it, RowFilter.create(txnCtx, inputFactory, retainedPredicate));
         it = inputRowProjector.apply(it);
         return CompletableFuture.completedFuture(it);
     }
