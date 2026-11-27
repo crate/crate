@@ -207,4 +207,240 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
         // Because RamAccounting instance wasn't closed
         execute("explain analyze select * from sys.summits where height in (select x from unnest([1, 2, 3, 4]) t (x))");
     }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> collectAllQueryBreakdowns(Map<String, Object> executeAnalysis) {
+        List<Map<String, Object>> allBreakdowns = new ArrayList<>();
+        DiscoveryNodes nodes = clusterService().state().nodes();
+        for (DiscoveryNode discoveryNode : nodes) {
+            if (discoveryNode.isDataNode()) {
+                Object actual = executeAnalysis.get(discoveryNode.getId());
+                if (actual instanceof Map<?, ?> timings) {
+                    Object qb = timings.get("QueryBreakdown");
+                    if (qb instanceof List<?> list) {
+                        for (Object item : list) {
+                            allBreakdowns.add((Map<String, Object>) item);
+                        }
+                    }
+                }
+            }
+        }
+        return allBreakdowns;
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_count_basic_reports_shard_timing() {
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM locations");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        assertThat(executeAnalysis).containsKeys("Phases", "Total");
+        Map<String, Map<String, Object>> phases = (Map<String, Map<String, Object>>) executeAnalysis.get("Phases");
+        assertThat(phases).containsKey("0-count");
+
+        List<Map<String, Object>> breakdowns = collectAllQueryBreakdowns(executeAnalysis);
+        assertThat(breakdowns).isNotEmpty();
+
+        for (Map<String, Object> breakdown : breakdowns) {
+            assertThat(breakdown.get("SchemaName")).isEqualTo(sqlExecutor.getCurrentSchema());
+            assertThat(breakdown.get("TableName")).isEqualTo("locations");
+            assertThat(breakdown.get("ShardId")).isInstanceOf(Integer.class);
+            assertThat((int) breakdown.get("ShardId")).isGreaterThanOrEqualTo(0);
+            assertThat(breakdown.get("QueryName")).isEqualTo("CountQuery");
+            assertThat(breakdown.get("QueryDescription")).isEqualTo("*:*");
+            assertThat(breakdown.get("Time")).isInstanceOf(Double.class);
+            assertThat((double) breakdown.get("Time")).isGreaterThanOrEqualTo(0.0);
+            assertThat(breakdown).doesNotContainKey("PartitionIdent");
+            assertThat(breakdown).doesNotContainKey("BreakDown");
+            assertThat(breakdown).doesNotContainKey("Children");
+        }
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_count_with_where_clause() {
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM locations WHERE name LIKE '%Ripple%' AND position > 0");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        List<Map<String, Object>> breakdowns = collectAllQueryBreakdowns(executeAnalysis);
+        assertThat(breakdowns).isNotEmpty();
+
+        for (Map<String, Object> breakdown : breakdowns) {
+            assertThat(breakdown.get("SchemaName")).isEqualTo(sqlExecutor.getCurrentSchema());
+            assertThat(breakdown.get("TableName")).isEqualTo("locations");
+            assertThat(breakdown.get("QueryName")).isEqualTo("CountQuery");
+            assertThat(breakdown.get("QueryDescription").toString()).contains("Ripple");
+            assertThat(breakdown.get("Time")).isInstanceOf(Double.class);
+            assertThat((double) breakdown.get("Time")).isGreaterThanOrEqualTo(0.0);
+        }
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_count_on_partitioned_table() {
+        execute("CREATE TABLE my_schema.parted_count (id int, p int) PARTITIONED BY (p) with (number_of_replicas = 0)");
+        execute("INSERT INTO my_schema.parted_count (id, p) VALUES (1, 10), (2, 20)");
+        execute("REFRESH TABLE my_schema.parted_count");
+
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM my_schema.parted_count");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        List<Map<String, Object>> breakdowns = collectAllQueryBreakdowns(executeAnalysis);
+        assertThat(breakdowns).isNotEmpty();
+
+        List<String> partitionIdents = new ArrayList<>();
+        for (Map<String, Object> breakdown : breakdowns) {
+            assertThat(breakdown.get("SchemaName")).isEqualTo("my_schema");
+            assertThat(breakdown.get("TableName")).isEqualTo("parted_count");
+            assertThat(breakdown.get("QueryName")).isEqualTo("CountQuery");
+            assertThat(breakdown.get("PartitionIdent")).isNotNull();
+            partitionIdents.add((String) breakdown.get("PartitionIdent"));
+        }
+        assertThat(partitionIdents).hasSizeGreaterThanOrEqualTo(2);
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_count_partition_pruning() {
+        execute("CREATE TABLE my_schema.parted_pruning (id int, p int) PARTITIONED BY (p) with (number_of_replicas = 0)");
+        execute("INSERT INTO my_schema.parted_pruning (id, p) VALUES (1, 10), (2, 20)");
+        execute("REFRESH TABLE my_schema.parted_pruning");
+
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM my_schema.parted_pruning WHERE p = 10");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        List<Map<String, Object>> breakdowns = collectAllQueryBreakdowns(executeAnalysis);
+        assertThat(breakdowns).isNotEmpty();
+
+        List<String> partitionIdents = new ArrayList<>();
+        for (Map<String, Object> breakdown : breakdowns) {
+            assertThat(breakdown.get("SchemaName")).isEqualTo("my_schema");
+            assertThat(breakdown.get("TableName")).isEqualTo("parted_pruning");
+            partitionIdents.add((String) breakdown.get("PartitionIdent"));
+        }
+
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM my_schema.parted_pruning WHERE p = 20");
+        Map<String, Object> analysis2 = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis2 = (Map<String, Object>) analysis2.get("Execute");
+        List<Map<String, Object>> breakdowns2 = collectAllQueryBreakdowns(executeAnalysis2);
+        assertThat(breakdowns2).isNotEmpty();
+
+        List<String> partitionIdents2 = new ArrayList<>();
+        for (Map<String, Object> breakdown : breakdowns2) {
+            partitionIdents2.add((String) breakdown.get("PartitionIdent"));
+        }
+
+        assertThat(partitionIdents).doesNotContainAnyElementsOf(partitionIdents2);
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_count_routing_predicate() {
+        execute("CREATE TABLE doc.routed_count (id int, name string) CLUSTERED BY (name) INTO 2 SHARDS WITH (number_of_replicas = 0)");
+        execute("INSERT INTO doc.routed_count (id, name) VALUES (1, 'foo'), (2, 'bar')");
+        execute("REFRESH TABLE doc.routed_count");
+
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM doc.routed_count WHERE name = 'foo'");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        List<Map<String, Object>> breakdowns = collectAllQueryBreakdowns(executeAnalysis);
+
+        assertThat(breakdowns).isNotEmpty();
+        assertThat(breakdowns.getFirst().get("TableName")).isEqualTo("routed_count");
+        assertThat(breakdowns.getFirst().get("QueryName")).isEqualTo("CountQuery");
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_count_multi_node_execution() {
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM locations");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        DiscoveryNodes nodes = clusterService().state().nodes();
+        int nodesWithBreakdown = 0;
+        List<Integer> shardIds = new ArrayList<>();
+        for (DiscoveryNode discoveryNode : nodes) {
+            if (discoveryNode.isDataNode()) {
+                Object actual = executeAnalysis.get(discoveryNode.getId());
+                assertThat(actual).isInstanceOf(Map.class);
+                Map<String, Object> timings = (Map<String, Object>) actual;
+                if (timings.containsKey("QueryBreakdown")) {
+                    nodesWithBreakdown++;
+                    List<Map<String, Object>> qbList = (List<Map<String, Object>>) timings.get("QueryBreakdown");
+                    assertThat(qbList).isNotEmpty();
+                    for (Map<String, Object> qb : qbList) {
+                        shardIds.add((Integer) qb.get("ShardId"));
+                    }
+                }
+            }
+        }
+        assertThat(nodesWithBreakdown).isEqualTo(2);
+        assertThat(shardIds).containsExactlyInAnyOrder(0, 1);
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_count_empty_result() {
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM locations WHERE name = 'nonexistent_location'");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+        List<Map<String, Object>> breakdowns = collectAllQueryBreakdowns(executeAnalysis);
+        assertThat(breakdowns).isNotEmpty();
+        for (Map<String, Object> qb : breakdowns) {
+            assertThat(qb.get("QueryName")).isEqualTo("CountQuery");
+            assertThat(qb.get("QueryDescription").toString()).contains("nonexistent_location");
+            assertThat(qb.get("Time")).isNotNull();
+        }
+
+        execute("CREATE TABLE doc.empty_table (x int) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("EXPLAIN ANALYZE SELECT COUNT(*) FROM doc.empty_table");
+        Map<String, Object> analysis2 = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis2 = (Map<String, Object>) analysis2.get("Execute");
+        List<Map<String, Object>> breakdowns2 = collectAllQueryBreakdowns(executeAnalysis2);
+        assertThat(breakdowns2).hasSize(2);
+        for (Map<String, Object> qb : breakdowns2) {
+            assertThat(qb.get("TableName")).isEqualTo("empty_table");
+            assertThat(qb.get("QueryName")).isEqualTo("CountQuery");
+            assertThat(qb.get("QueryDescription")).isEqualTo("*:*");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_regular_select_profiling_unchanged() {
+        execute("EXPLAIN ANALYZE SELECT * FROM locations WHERE name = 'North West Ripple'");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        List<Map<String, Object>> breakdowns = collectAllQueryBreakdowns(executeAnalysis);
+        assertThat(breakdowns).isNotEmpty();
+        for (Map<String, Object> qb : breakdowns) {
+            assertThat(qb.get("QueryName")).isNotEqualTo("CountQuery");
+            assertThat(qb).containsKey("BreakDown");
+        }
+    }
+
+    @Test
+    public void test_count_without_explain_analyze_behavior_unchanged() {
+        execute("SELECT COUNT(*) FROM locations");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((long) response.rows()[0][0]).isEqualTo(13L);
+
+        execute("SELECT COUNT(*) FROM locations WHERE name = 'North West Ripple'");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((long) response.rows()[0][0]).isEqualTo(1L);
+    }
 }

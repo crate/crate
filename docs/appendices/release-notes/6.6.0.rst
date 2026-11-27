@@ -117,6 +117,9 @@ Performance and Resilience Improvements
   primary key. In these cases, we can skip unnecessary duplicate elimination
   because the primary key guarantees that each row is unique.
 
+- Added per-shard execution timing details for `COUNT(*)` queries to `EXPLAIN ANALYZE`,
+  making it easier to identify the time spent executing count operations across shards.
+
 Administration and Operations
 -----------------------------
 

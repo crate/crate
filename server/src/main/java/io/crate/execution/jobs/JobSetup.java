@@ -125,6 +125,7 @@ import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.operators.PKAndVersion;
+import io.crate.profile.ProfilingContext;
 import io.crate.sql.tree.JoinType;
 import io.crate.types.DataTypes;
 
@@ -575,6 +576,11 @@ public class JobSetup {
         public TransactionContext txnCtx() {
             return transactionContext;
         }
+
+        @Nullable
+        public ProfilingContext profilingContext() {
+            return taskBuilder.profilingContext();
+        }
     }
 
     private class InnerPreparer extends ExecutionPhaseVisitor<Context, Void> {
@@ -600,7 +606,8 @@ public class JobSetup {
                 countOperation,
                 consumer,
                 indexShardMap,
-                ramAccounting
+                ramAccounting,
+                context.profilingContext()
             ));
             return null;
         }
