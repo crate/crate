@@ -43,6 +43,12 @@ Security Fixes
 - Mitigation for CVE-2026-114938 by disabling the ``UseBASE64Intrinsics`` JVM
   option.
 
+- Fixed a missing privilege check on the
+  :ref:`pg_catalog.pg_index <postgres-pg_catalog>` table, which allowed users
+  to see index metadata of tables they have no privileges on. For more details
+  see the `security advisory
+  <https://github.com/crate/crate/security/advisories/GHSA-hr4h-p68x-58j7>`__.
+
 Fixes
 =====
 
