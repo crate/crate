@@ -440,6 +440,17 @@ The features listed below cover the main differences in implementation and
 dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's
 SQL dialect and standard SQL is outlined in :ref:`appendix-compatibility`.
 
+.. _postgres-bulk-request-errors:
+
+Bulk request errors
+-------------------
+
+CrateDB supports bulk operations (see also :ref:`http-bulk-ops`). When CrateDB
+is sent more than one row via a postgres client, (i.e. via ``executemany()``),
+CrateDB executes this in bulk. When there is an error during execution, for
+example on duplicate primary key errors or other constraint failures, CrateDB
+indicates an error with that row with a value of -3, and then continues to process the rest of the
+rows (i.e. ``UPDATE -3``). See also :ref:`http-bulk-errors`.
 
 .. _postgres-copy:
 
