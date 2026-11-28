@@ -1268,7 +1268,8 @@ public final class DocTableInfo implements TableInfo, ShardedTable, StoredTable 
 
     private static boolean undefinedRefinement(DataType<?> currentType, DataType<?> newType) {
         return ArrayType.unnest(currentType).id() == UndefinedType.ID
-            && ArrayType.dimensions(currentType) == ArrayType.dimensions(newType)
+            && (currentType instanceof UndefinedType
+                || ArrayType.dimensions(currentType) == ArrayType.dimensions(newType))
             && ArrayType.unnest(newType).id() != UndefinedType.ID;
     }
 
