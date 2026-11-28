@@ -44,6 +44,18 @@ import io.crate.testing.UseJdbc;
 
 public class ObjectColumnTest extends IntegTestCase {
 
+    @Test
+    public void test_insert_array_into_dynamic_object_child_with_undefined_type() {
+        execute("create table t (id int, o object(dynamic)) with (number_of_replicas = 0)");
+        execute("insert into t (id, o) values (1, {a=null})");
+
+        execute("insert into t (id, o) values (2, {a=[1]})");
+        execute("refresh table t");
+
+        execute("select id, o['a'] from t order by id");
+        assertThat(response).hasRows("1| NULL", "2| [1]");
+    }
+
     private final Setup setup = new Setup(sqlExecutor);
 
     @Test

@@ -23,7 +23,6 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -48,6 +47,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
+import io.crate.types.UndefinedType;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
@@ -77,9 +77,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         // However, queries like array_length(obj_array['int_col'], 1) are valid since the readType of obj_array['int_col']
         // is an array(int) - [1, 2]. In such cases we can simply use the fact that every element of 'obj_array' there
         // exists its sub-column 'int_col' such that array_length(obj_array, 1) = array_length(obj_array['int_col'], 1)
-        DataType<?> valueType = Optional
-            .ofNullable(getRef.apply(arrayRef.column())) // null if the arrayRef is dynamically added
-            .orElse(arrayRef).valueType();
+        Reference tableRef = getRef.apply(arrayRef.column());
+        DataType<?> valueType = tableRef == null || tableRef.valueType() instanceof UndefinedType
+            ? arrayRef.valueType()
+            : tableRef.valueType();
 
         // if the arrayRef is a ReadReference
         if (!arrayRef.valueType().equals(valueType)) {
